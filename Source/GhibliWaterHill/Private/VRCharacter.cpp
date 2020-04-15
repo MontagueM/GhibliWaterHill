@@ -12,6 +12,11 @@
 #include "Components/CapsuleComponent.h"
 #include "VRController.h"
 
+#include "Runtime/Engine/Classes/GameFramework/InputSettings.h"
+#include "InputCoreTypes.h"
+#include "Runtime/CoreUObject/Public/UObject/UObjectGlobals.h"
+
+
 // Sets default values
 AVRCharacter::AVRCharacter()
 {
@@ -45,6 +50,8 @@ void AVRCharacter::BeginPlay()
 	RightController->AttachToComponent(VRRoot, FAttachmentTransformRules::KeepRelativeTransform);
 	RightController->SetOwner(this);
 	RightController->SetHand(EControllerHand::Right);
+
+	SetupPlayerInputComponent(FindComponentByClass<UInputComponent>());
 }
 
 // Called every frame
@@ -68,12 +75,16 @@ void AVRCharacter::Tick(float DeltaTime)
 // Called to bind functionality to input
 void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
+	if (!ensure(PlayerInputComponent)) { return; }
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
+	if (LeftController && RightController)
+	{
+		if (GetTeleportController() == LeftController) { UpdateActionMapping(TEXT("Teleport"), FKey(), EKeys::OculusTouch_Left_Trigger_Click); }
+		else { UpdateActionMapping(TEXT("Teleport"), FKey(), EKeys::OculusTouch_Right_Trigger_Click); }
+	}
 	PlayerInputComponent->BindAxis(TEXT("Forward"), this, &AVRCharacter::MoveForward);
 	PlayerInputComponent->BindAxis(TEXT("Right"), this, &AVRCharacter::MoveRight);
 	PlayerInputComponent->BindAction(TEXT("Teleport"), IE_Released, this, &AVRCharacter::BeginTeleport);
-
 }
 
 void AVRCharacter::MoveForward(float Scale)
@@ -88,6 +99,7 @@ void AVRCharacter::MoveRight(float Scale)
 
 void AVRCharacter::BeginTeleport()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Teleporting"))
 	// Fade out
 	PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	PlayerCameraManager->StartCameraFade(0, 1, TeleportBlinkTime / 2, FLinearColor::Black, false, true); // last needs to be true otherwise flashes white
@@ -97,7 +109,6 @@ void AVRCharacter::BeginTeleport()
 
 void AVRCharacter::EndTeleport()
 {
-	// TODO
 	PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	FVector TeleportLocation;
 	GetTeleportController()->FindTeleportDestination(TeleportLocation); // could be more efficient to simply grab the position as usual instead of recalculating it all
@@ -115,4 +126,23 @@ AVRController* AVRCharacter::GetTeleportController()
 {
 	if (LeftController->bCanHandTeleport()) { return LeftController; }
 	else { return RightController; }
+}
+
+
+void AVRCharacter::UpdateActionMapping(FName ActionName, FKey OldKey, FKey NewKey)
+{
+	UInputSettings* InputSettings = const_cast<UInputSettings*>(GetDefault<UInputSettings>());
+
+	// delete all old keymaps
+	TArray<FInputActionKeyMapping> KeyMappings = InputSettings->GetActionMappings();
+	for (FInputActionKeyMapping Mapping : KeyMappings)
+	{
+		InputSettings->RemoveActionMapping(Mapping);
+	}
+
+	if (OldKey.IsValid()) { InputSettings->RemoveActionMapping(FInputActionKeyMapping(ActionName, OldKey)); }
+	if (!ensure(NewKey.IsValid())) { return; }
+	InputSettings->AddActionMapping(FInputActionKeyMapping(ActionName, NewKey));
+
+	InputSettings->SaveKeyMappings();
 }
