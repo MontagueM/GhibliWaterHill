@@ -37,7 +37,8 @@ void AVRController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	UpdateTeleportation();
+	if (bCanTeleport()) { UpdateTeleportation(); }
+		
 }
 
 void AVRController::SetHand(EControllerHand SetHand) {
@@ -51,9 +52,8 @@ bool AVRController::FindTeleportDestination(FVector& Location)
 {
 	/// Using rotateangleaxis for easiness in teleportation handling (rotates it down from the controller)
 
-	// TODO fix this call
-	FVector StartLocation = LeftController->GetActorLocation();
-	FVector Direction = LeftController->GetActorForwardVector().RotateAngleAxis(15, LeftController->GetActorRightVector());
+	FVector StartLocation = GetActorLocation();
+	FVector Direction = GetActorForwardVector().RotateAngleAxis(15, GetActorRightVector());
 
 	FPredictProjectilePathResult Result;
 	FPredictProjectilePathParams Params(TeleportProjectileRadius,
@@ -129,4 +129,10 @@ void AVRController::UpdateTeleportation()
 	{
 		DestinationMarker->SetVisibility(false);
 	}
+}
+
+bool AVRController::bCanTeleport()
+{
+	if (Hand == TeleportHand) { return true; }
+	return false;
 }

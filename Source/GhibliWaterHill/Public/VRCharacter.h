@@ -28,19 +28,19 @@ public:
 
 private:
 	UPROPERTY()
-		class UCameraComponent* Camera = nullptr;
+	class UCameraComponent* Camera = nullptr;
 	UPROPERTY()
-		class USceneComponent* VRRoot = nullptr;
-	//UPROPERTY(VisibleAnywhere)
-	//	class AVRController* LeftController = nullptr;
-	//UPROPERTY(VisibleAnywhere)
-	//	class AVRController* RightController = nullptr;
-	//UPROPERTY(EditDefaultsOnly)
-	//	TSubclassOf<AVRController> HandControllerClass;
+	class USceneComponent* VRRoot = nullptr;
+	UPROPERTY(VisibleAnywhere)
+	class AVRController* LeftController = nullptr;
+	UPROPERTY(VisibleAnywhere)
+	class AVRController* RightController = nullptr;
 	UPROPERTY(EditDefaultsOnly)
-		float TeleportBlinkTime = 1;
+	TSubclassOf<AVRController> HandControllerClass;
 	UPROPERTY(EditDefaultsOnly)
-		float TeleportTime = 0.1;
+	float TeleportBlinkTime = 1;
+	UPROPERTY(EditDefaultsOnly)
+	float TeleportTime = 0.1;
 
 	class APlayerCameraManager* PlayerCameraManager = nullptr;
 
@@ -50,4 +50,6 @@ private:
 	void BeginTeleport();
 	void EndTeleport();
 	void FadeOutFromTeleport();
+
+	AVRController* GetTeleportController();
 };

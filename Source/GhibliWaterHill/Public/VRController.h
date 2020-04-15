@@ -23,42 +23,42 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	void SetHand(EControllerHand Hand);
+	bool bCanTeleport();
+	bool FindTeleportDestination(FVector& Location);
 private:
 	UPROPERTY(VisibleAnywhere)
-		EControllerHand Hand;
+	EControllerHand Hand;
 	UPROPERTY(VisibleAnywhere)
-		class UMotionControllerComponent* MotionController;
+	class UMotionControllerComponent* MotionController;
 
 	UFUNCTION(BlueprintCallable)
-		EControllerHand GetHand();
-
-	void SetHand(EControllerHand Hand);
-
+	EControllerHand GetHand();
 private:
 	UPROPERTY()
-		class USplineMeshComponent* SplineMesh = nullptr;
+	class USplineMeshComponent* SplineMesh = nullptr;
 	UPROPERTY(VisibleAnywhere)
-		class UStaticMeshComponent* DestinationMarker = nullptr;
+	class UStaticMeshComponent* DestinationMarker = nullptr;
 	UPROPERTY(VisibleAnywhere)
-		class USplineComponent* TeleportPath = nullptr;
+	class USplineComponent* TeleportPath = nullptr;
 
 	UPROPERTY(EditDefaultsOnly)
-		float TeleportProjectileSpeed = 800;
+	float TeleportProjectileSpeed = 800;
 	UPROPERTY(EditDefaultsOnly)
-		float TeleportProjectileRadius = 10;
+	float TeleportProjectileRadius = 10;
 	UPROPERTY(EditDefaultsOnly)
-		float TeleportSimulationTime = 5;
+	float TeleportSimulationTime = 5;
 	UPROPERTY(EditDefaultsOnly)
-		FVector TeleportNavExtent = FVector(100, 100, 100);
+	FVector TeleportNavExtent = FVector(100, 100, 100);
 	UPROPERTY(EditDefaultsOnly)
-		class UStaticMesh* TeleportArcMesh;
+	class UStaticMesh* TeleportArcMesh;
 	UPROPERTY(EditDefaultsOnly)
-		class UMaterialInterface* TeleportArcMaterial;
+	class UMaterialInterface* TeleportArcMaterial;
 	UPROPERTY() // need this for proper garbage collection
-		TArray<class USplineMeshComponent*> TeleportMeshObjects;
-
+	TArray<class USplineMeshComponent*> TeleportMeshObjects;
+	UPROPERTY(EditDefaultsOnly)
+	EControllerHand TeleportHand = EControllerHand::Left;
 private:
-	bool FindTeleportDestination(FVector& Location);
 	void UpdateSpline(struct FPredictProjectilePathResult Result);
 	void UpdateTeleportation();
 };

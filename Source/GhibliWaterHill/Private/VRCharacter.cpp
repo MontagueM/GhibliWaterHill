@@ -8,7 +8,9 @@
 #include "Camera/PlayerCameraManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
-#include "TimerManager.h" 
+#include "TimerManager.h"
+#include "Components/CapsuleComponent.h"
+#include "VRController.h"
 
 // Sets default values
 AVRCharacter::AVRCharacter()
@@ -32,17 +34,17 @@ void AVRCharacter::BeginPlay()
 	UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(EHMDTrackingOrigin::Floor);
 	// TODO
 	// we want to spawn the specific class here (BP)
-	//LeftController = GetWorld()->SpawnActor<AVRController>(HandControllerClass);
-	//if (!ensure(LeftController)) { return; }
-	//LeftController->AttachToComponent(VRRoot, FAttachmentTransformRules::KeepRelativeTransform);
-	//LeftController->SetOwner(this);
-	//LeftController->SetHand(EControllerHand::Left);
+	LeftController = GetWorld()->SpawnActor<AVRController>(HandControllerClass);
+	if (!ensure(LeftController)) { return; }
+	LeftController->AttachToComponent(VRRoot, FAttachmentTransformRules::KeepRelativeTransform);
+	LeftController->SetOwner(this);
+	LeftController->SetHand(EControllerHand::Left);
 
-	//RightController = GetWorld()->SpawnActor<AVRController>(HandControllerClass);
-	//if (!ensure(RightController)) { return; }
-	//RightController->AttachToComponent(VRRoot, FAttachmentTransformRules::KeepRelativeTransform);
-	//RightController->SetOwner(this);
-	//RightController->SetHand(EControllerHand::Right);
+	RightController = GetWorld()->SpawnActor<AVRController>(HandControllerClass);
+	if (!ensure(RightController)) { return; }
+	RightController->AttachToComponent(VRRoot, FAttachmentTransformRules::KeepRelativeTransform);
+	RightController->SetOwner(this);
+	RightController->SetHand(EControllerHand::Right);
 }
 
 // Called every frame
@@ -97,7 +99,9 @@ void AVRCharacter::EndTeleport()
 {
 	// TODO
 	PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
-	//SetActorLocation(DestinationMarker->GetComponentLocation() + FVector(0, 0, GetCapsuleComponent()->GetScaledCapsuleHalfHeight())); // Capsule added to stop teleporting into floor
+	FVector TeleportLocation;
+	GetTeleportController()->FindTeleportDestination(TeleportLocation); // could be more efficient to simply grab the position as usual instead of recalculating it all
+	SetActorLocation(TeleportLocation + FVector(0, 0, GetCapsuleComponent()->GetScaledCapsuleHalfHeight())); // Capsule added to stop teleporting into floor
 	FTimerHandle Handle;
 	GetWorldTimerManager().SetTimer(Handle, this, &AVRCharacter::FadeOutFromTeleport, TeleportTime);
 }
@@ -105,4 +109,10 @@ void AVRCharacter::EndTeleport()
 void AVRCharacter::FadeOutFromTeleport()
 {
 	PlayerCameraManager->StartCameraFade(1, 0, TeleportBlinkTime / 2, FLinearColor::Black, false, true);
+}
+
+AVRController* AVRCharacter::GetTeleportController()
+{
+	if (LeftController->bCanTeleport()) { return LeftController; }
+	else { return RightController; }
 }
