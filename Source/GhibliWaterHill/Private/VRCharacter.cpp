@@ -30,7 +30,7 @@ void AVRCharacter::BeginPlay()
 
 	// so that we aren't in the floor
 	UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(EHMDTrackingOrigin::Floor);
-	
+	// TODO
 	// we want to spawn the specific class here (BP)
 	//LeftController = GetWorld()->SpawnActor<AVRController>(HandControllerClass);
 	//if (!ensure(LeftController)) { return; }
@@ -95,6 +95,7 @@ void AVRCharacter::BeginTeleport()
 
 void AVRCharacter::EndTeleport()
 {
+	// TODO
 	PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	//SetActorLocation(DestinationMarker->GetComponentLocation() + FVector(0, 0, GetCapsuleComponent()->GetScaledCapsuleHalfHeight())); // Capsule added to stop teleporting into floor
 	FTimerHandle Handle;
