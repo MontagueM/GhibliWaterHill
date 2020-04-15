@@ -37,7 +37,7 @@ void AVRController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bCanTeleport()) { UpdateTeleportation(); }
+	if (bCanHandTeleport()) { UpdateTeleportation(); }
 		
 }
 
@@ -120,7 +120,7 @@ void AVRController::UpdateTeleportation()
 	/// Destination for teleport
 	FVector TeleportLocation;
 	bool CanTeleport = FindTeleportDestination(TeleportLocation);
-	if (CanTeleport)
+	if (CanTeleport && bCanHandTeleport())
 	{
 		DestinationMarker->SetWorldLocation(TeleportLocation);
 		DestinationMarker->SetVisibility(true);
@@ -131,7 +131,7 @@ void AVRController::UpdateTeleportation()
 	}
 }
 
-bool AVRController::bCanTeleport()
+bool AVRController::bCanHandTeleport()
 {
 	if (Hand == TeleportHand) { return true; }
 	return false;

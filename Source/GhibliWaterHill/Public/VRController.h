@@ -24,10 +24,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	void SetHand(EControllerHand Hand);
-	bool bCanTeleport();
+	bool bCanHandTeleport();
 	bool FindTeleportDestination(FVector& Location);
 private:
-	UPROPERTY(VisibleAnywhere)
+	// 	UPROPERTY(VisibleAnywhere)
 	EControllerHand Hand;
 	UPROPERTY(VisibleAnywhere)
 	class UMotionControllerComponent* MotionController;

@@ -31,9 +31,7 @@ private:
 	class UCameraComponent* Camera = nullptr;
 	UPROPERTY()
 	class USceneComponent* VRRoot = nullptr;
-	UPROPERTY(VisibleAnywhere)
 	class AVRController* LeftController = nullptr;
-	UPROPERTY(VisibleAnywhere)
 	class AVRController* RightController = nullptr;
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AVRController> HandControllerClass;

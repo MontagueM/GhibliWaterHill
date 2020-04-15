@@ -113,6 +113,6 @@ void AVRCharacter::FadeOutFromTeleport()
 
 AVRController* AVRCharacter::GetTeleportController()
 {
-	if (LeftController->bCanTeleport()) { return LeftController; }
+	if (LeftController->bCanHandTeleport()) { return LeftController; }
 	else { return RightController; }
 }
