@@ -123,6 +123,7 @@ void AVRController::UpdateTeleportation()
 	if (CanTeleport && bCanHandTeleport())
 	{
 		DestinationMarker->SetWorldLocation(TeleportLocation);
+		DestinationMarker->SetWorldRotation(FRotator::ZeroRotator); // TODO change this
 		DestinationMarker->SetVisibility(true);
 	}
 	else

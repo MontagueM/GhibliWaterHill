@@ -50,4 +50,5 @@ private:
 	void FadeOutFromTeleport();
 	void UpdateActionMapping(FName ActionName, FKey OldKey, FKey NewKey);
 	AVRController* GetTeleportController();
+
 };
