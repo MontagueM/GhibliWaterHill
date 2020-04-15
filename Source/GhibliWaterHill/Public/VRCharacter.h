@@ -26,4 +26,28 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+private:
+	UPROPERTY()
+		class UCameraComponent* Camera = nullptr;
+	UPROPERTY()
+		class USceneComponent* VRRoot = nullptr;
+	//UPROPERTY(VisibleAnywhere)
+	//	class AVRController* LeftController = nullptr;
+	//UPROPERTY(VisibleAnywhere)
+	//	class AVRController* RightController = nullptr;
+	//UPROPERTY(EditDefaultsOnly)
+	//	TSubclassOf<AVRController> HandControllerClass;
+	UPROPERTY(EditDefaultsOnly)
+		float TeleportBlinkTime = 1;
+	UPROPERTY(EditDefaultsOnly)
+		float TeleportTime = 0.1;
+
+	class APlayerCameraManager* PlayerCameraManager = nullptr;
+
+private:
+	void MoveForward(float Scale);
+	void MoveRight(float Scale);
+	void BeginTeleport();
+	void EndTeleport();
+	void FadeOutFromTeleport();
 };
