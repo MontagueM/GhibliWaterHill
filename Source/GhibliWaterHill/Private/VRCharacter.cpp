@@ -37,7 +37,6 @@ void AVRCharacter::BeginPlay()
 
 	// so that we aren't in the floor
 	UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(EHMDTrackingOrigin::Floor);
-	// TODO
 	// we want to spawn the specific class here (BP)
 	LeftController = GetWorld()->SpawnActor<AVRController>(HandControllerClass);
 	if (!ensure(LeftController)) { return; }
@@ -80,23 +79,34 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 	// delete all old keymaps
 	UInputSettings* InputSettings = const_cast<UInputSettings*>(GetDefault<UInputSettings>());
-	TArray<FInputActionKeyMapping> KeyMappings = InputSettings->GetActionMappings();
-	for (FInputActionKeyMapping Mapping : KeyMappings)
-	{
-		InputSettings->RemoveActionMapping(Mapping);
-	}
+	TArray<FInputActionKeyMapping> ActionMappings = InputSettings->GetActionMappings();
+	TArray<FInputAxisKeyMapping> AxisMappings = InputSettings->GetAxisMappings();
+	for (FInputActionKeyMapping Mapping : ActionMappings) { InputSettings->RemoveActionMapping(Mapping); }
+	for (FInputAxisKeyMapping Mapping : AxisMappings) { InputSettings->RemoveAxisMapping(Mapping); }
 
 	if (LeftController && RightController)
 	{
 		if (GetTeleportController() == LeftController) 
 		{ 
+			UpdateActionMapping(InputSettings, TEXT("Teleport"), FKey(), EKeys::SpaceBar);
+			UpdateActionMapping(InputSettings, TEXT("CheckTeleport"), FKey(), EKeys::LeftShift);
 			UpdateActionMapping(InputSettings, TEXT("Teleport"), FKey(), EKeys::OculusTouch_Left_Trigger_Click); // sometimes oculus controllers dont work so for debug using spacebar
 			UpdateActionMapping(InputSettings, TEXT("CheckTeleport"), FKey(), EKeys::OculusTouch_Left_Thumbstick_Down);
+			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Right_Thumbstick_Up, 1);
+			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Right_Thumbstick_Down, -1);
+			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Right_Thumbstick_Right, 1);
+			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Right_Thumbstick_Left, -1);
 		} 
 		else 
 		{ 
 			UpdateActionMapping(InputSettings, TEXT("Teleport"), FKey(), EKeys::SpaceBar);
 			UpdateActionMapping(InputSettings, TEXT("CheckTeleport"), FKey(), EKeys::LeftShift);
+			UpdateActionMapping(InputSettings, TEXT("Teleport"), FKey(), EKeys::OculusTouch_Right_Trigger_Click); // sometimes oculus controllers dont work so for debug using spacebar
+			UpdateActionMapping(InputSettings, TEXT("CheckTeleport"), FKey(), EKeys::OculusTouch_Right_Thumbstick_Down);
+			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Left_Thumbstick_Up, 1);
+			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Left_Thumbstick_Down, -1);
+			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Left_Thumbstick_Right, 1);
+			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Left_Thumbstick_Left, -1);
 		}
 	}
 	PlayerInputComponent->BindAxis(TEXT("Forward"), this, &AVRCharacter::MoveForward);
@@ -155,6 +165,14 @@ void AVRCharacter::UpdateActionMapping(UInputSettings* InputSettings, FName Acti
 	if (!ensure(NewKey.IsValid())) { return; }
 	InputSettings->AddActionMapping(FInputActionKeyMapping(ActionName, NewKey));
 	UE_LOG(LogTemp, Warning, TEXT("wa %s"), *NewKey.GetFName().ToString())
+	InputSettings->SaveKeyMappings();
+}
+
+void AVRCharacter::UpdateAxisMapping(UInputSettings* InputSettings, FName AxisName, FKey Key, float Scale)
+{
+	if (!ensure(Key.IsValid())) { return; }
+	InputSettings->AddAxisMapping(FInputAxisKeyMapping(AxisName, Key, Scale));
+	UE_LOG(LogTemp, Warning, TEXT("axis %s"), *Key.GetFName().ToString())
 	InputSettings->SaveKeyMappings();
 }
 

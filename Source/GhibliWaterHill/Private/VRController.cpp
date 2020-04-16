@@ -40,7 +40,7 @@ void AVRController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bCanHandTeleport()) { UpdateTeleportationCheck(); }
+	if (bCanHandTeleport() && bCanCheckTeleport) { UpdateTeleportationCheck(); }
 		
 }
 
@@ -86,7 +86,7 @@ bool AVRController::FindTeleportDestination(FVector& Location, FRotator& Normal)
 void AVRController::UpdateSpline(FPredictProjectilePathResult Result)
 {
 	// to hide left over spline components
-	for (USplineMeshComponent* u : TeleportMeshObjects)
+	for (USplineMeshComponent* u : TeleportMeshObjects) // TODO refactor
 	{
 		u->SetVisibility(false);
 	}
@@ -125,7 +125,7 @@ void AVRController::UpdateTeleportationCheck()
 	FVector TeleportLocation;
 	FRotator Normal;
 	bool CanTeleport = FindTeleportDestination(TeleportLocation, Normal);
-	if (CanTeleport && bCanHandTeleport())
+	if (CanTeleport && bCanHandTeleport() && bCanCheckTeleport)
 	{
 		DestinationMarker->SetWorldLocation(TeleportLocation);
 		DestinationMarker->SetWorldRotation(Normal + FRotator(90, 0, 0));
@@ -141,7 +141,7 @@ void AVRController::UpdateTeleportationCheck()
 
 bool AVRController::bCanHandTeleport()
 {
-	if (Hand == TeleportHand && bCanCheckTeleport) { return true; }
+	if (Hand == TeleportHand) { return true; }
 	return false;
 }
 

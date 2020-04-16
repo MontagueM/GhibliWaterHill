@@ -49,6 +49,7 @@ private:
 	void EndTeleport();
 	void FadeOutFromTeleport();
 	void UpdateActionMapping(class UInputSettings* InputSettings, FName ActionName, FKey OldKey, FKey NewKey);
+	void UpdateAxisMapping(class UInputSettings* InputSettings, FName AxisName, FKey Key, float Scale);
 	void StartTeleportationCheck();
 	void StopTeleportationCheck();
 	AVRController* GetTeleportController();
