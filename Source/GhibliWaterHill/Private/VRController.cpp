@@ -112,6 +112,10 @@ void AVRController::UpdateSpline(FPredictProjectilePathResult Result)
 			TeleportPath->GetLocalLocationAndTangentAtSplinePoint(i, LocationEnd, TangentEnd);
 			SplineMesh->SetStartAndEnd(LocationStart, TangentStart, LocationEnd, TangentEnd);
 			TeleportMeshObjects[i - 1]->SetVisibility(true);
+			if (i == Result.PathData.Num() - 1)
+			{
+				MarkerPoint->SetWorldLocation(LocationEnd);
+			}
 		}
 	}
 	MarkerPoint->SetVisibility(true);
@@ -128,12 +132,10 @@ void AVRController::UpdateTeleportationCheck()
 		DestinationMarker->SetWorldLocation(TeleportLocation);
 		DestinationMarker->SetWorldRotation(FRotator::ZeroRotator);
 		DestinationMarker->SetVisibility(true);
-		//MarkerPoint->SetVisibility(true);
 	}
 	else
 	{
 		DestinationMarker->SetVisibility(false);
-		//MarkerPoint->SetVisibility(false);
 	}
 }
 
