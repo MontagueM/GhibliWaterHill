@@ -123,7 +123,7 @@ void AVRController::UpdateSpline(FPredictProjectilePathResult Result)
 
 void AVRController::UpdateTeleportationCheck()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Updating teleportation"))
+	//UE_LOG(LogTemp, Warning, TEXT("Updating teleportation"))
 	/// Destination for teleport
 	FVector TeleportLocation;
 	bool CanTeleport = FindTeleportDestination(TeleportLocation);

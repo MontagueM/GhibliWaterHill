@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Containers/Queue.h"
 #include "VRCharacter.generated.h"
 
 UCLASS()
@@ -36,22 +37,26 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AVRController> HandControllerClass;
 	UPROPERTY(EditDefaultsOnly)
-	float TeleportBlinkTime = 1;
+	float TeleportBlinkTime = 0.3;
 	UPROPERTY(EditDefaultsOnly)
 	float TeleportTime = 0.1;
 
+	int32 ScaleHistoryMaxNum = 5;
+	TArray<float> ScaleHistory;
+	bool bCurrentlyTeleporting = false;
 	class APlayerCameraManager* PlayerCameraManager = nullptr;
 
 private:
 	void MoveForward(float Scale);
 	void MoveRight(float Scale);
-	void BeginTeleport();
+	void TryTeleport(float Scale);
 	void EndTeleport();
 	void FadeOutFromTeleport();
 	void UpdateActionMapping(class UInputSettings* InputSettings, FName ActionName, FKey OldKey, FKey NewKey);
 	void UpdateAxisMapping(class UInputSettings* InputSettings, FName AxisName, FKey Key, float Scale);
 	void StartTeleportationCheck();
 	void StopTeleportationCheck();
+	bool bVelocityForTeleport(float Scale);
 	AVRController* GetTeleportController();
 
 };

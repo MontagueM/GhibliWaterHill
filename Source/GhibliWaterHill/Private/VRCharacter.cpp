@@ -96,7 +96,7 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::D, 1);
 			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::A, -1);
 
-			UpdateActionMapping(InputSettings, TEXT("Teleport"), FKey(), EKeys::OculusTouch_Left_Trigger_Click); // sometimes oculus controllers dont work so for debug using spacebar
+			UpdateAxisMapping(InputSettings, TEXT("Teleport"), EKeys::OculusTouch_Left_Thumbstick_Y, 1); // sometimes oculus controllers dont work so for debug using spacebar
 			UpdateActionMapping(InputSettings, TEXT("CheckTeleport"), FKey(), EKeys::OculusTouch_Left_Thumbstick_Down);
 			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Right_Thumbstick_Up, 1);
 			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Right_Thumbstick_Down, -1);
@@ -113,7 +113,7 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::D, 1);
 			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::A, -1);
 
-			UpdateActionMapping(InputSettings, TEXT("Teleport"), FKey(), EKeys::OculusTouch_Right_Trigger_Click); // sometimes oculus controllers dont work so for debug using spacebar
+			UpdateAxisMapping(InputSettings, TEXT("Teleport"), EKeys::OculusTouch_Right_Thumbstick_Y, 1); // sometimes oculus controllers dont work so for debug using spacebar
 			UpdateActionMapping(InputSettings, TEXT("CheckTeleport"), FKey(), EKeys::OculusTouch_Right_Thumbstick_Down);
 			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Left_Thumbstick_Up, 1);
 			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Left_Thumbstick_Down, -1);
@@ -123,7 +123,7 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	}
 	PlayerInputComponent->BindAxis(TEXT("Forward"), this, &AVRCharacter::MoveForward);
 	PlayerInputComponent->BindAxis(TEXT("Right"), this, &AVRCharacter::MoveRight);
-	PlayerInputComponent->BindAction(TEXT("Teleport"), IE_Released, this, &AVRCharacter::BeginTeleport);
+	PlayerInputComponent->BindAxis(TEXT("Teleport"), this, &AVRCharacter::TryTeleport);
 	PlayerInputComponent->BindAction(TEXT("CheckTeleport"), IE_Pressed, this, &AVRCharacter::StartTeleportationCheck);
 	PlayerInputComponent->BindAction(TEXT("CheckTeleport"), IE_Released, this, &AVRCharacter::StopTeleportationCheck);
 }
@@ -138,14 +138,18 @@ void AVRCharacter::MoveRight(float Scale)
 	AddMovementInput(Camera->GetRightVector(), Scale);
 }
 
-void AVRCharacter::BeginTeleport()
+void AVRCharacter::TryTeleport(float Scale)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Teleporting"))
-	// Fade out
-	PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
-	PlayerCameraManager->StartCameraFade(0, 1, TeleportBlinkTime / 2, FLinearColor::Black, false, true); // last needs to be true otherwise flashes white
-	FTimerHandle Handle;
-	GetWorldTimerManager().SetTimer(Handle, this, &AVRCharacter::EndTeleport, TeleportBlinkTime / 2);
+	if (bVelocityForTeleport(Scale) && !bCurrentlyTeleporting)
+	{
+		bCurrentlyTeleporting = true;
+		UE_LOG(LogTemp, Warning, TEXT("Teleporting"))
+		// Fade out
+		PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
+		PlayerCameraManager->StartCameraFade(0, 1, TeleportBlinkTime / 2, FLinearColor::Black, false, true); // last needs to be true otherwise flashes white
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AVRCharacter::EndTeleport, TeleportBlinkTime / 2);
+	}
 }
 
 void AVRCharacter::EndTeleport()
@@ -161,6 +165,7 @@ void AVRCharacter::EndTeleport()
 void AVRCharacter::FadeOutFromTeleport()
 {
 	PlayerCameraManager->StartCameraFade(1, 0, TeleportBlinkTime / 2, FLinearColor::Black, false, true);
+	bCurrentlyTeleporting = false;
 }
 
 AVRController* AVRCharacter::GetTeleportController()
@@ -195,4 +200,25 @@ void AVRCharacter::StartTeleportationCheck()
 void AVRCharacter::StopTeleportationCheck()
 {
 	GetTeleportController()->SetCanCheckTeleport(false);
+}
+
+bool AVRCharacter::bVelocityForTeleport(float Scale)
+{
+	if (ScaleHistory.Num() < ScaleHistoryMaxNum)
+		ScaleHistory.Add(Scale);
+	else
+	{
+		ScaleHistory.RemoveAt(0, 1, true);
+		ScaleHistory.Add(Scale);
+	}
+
+	if (ScaleHistory.Num() == ScaleHistoryMaxNum)
+	{
+		float Difference = ScaleHistory[ScaleHistoryMaxNum - 1] - ScaleHistory[0];
+		if (Difference > 0.2) // Difference needs to be negative as only when pulling back up
+		{
+			return true;
+		}
+	}
+	return false;
 }
