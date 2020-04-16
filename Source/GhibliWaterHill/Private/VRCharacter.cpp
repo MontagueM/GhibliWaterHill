@@ -88,8 +88,14 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	{
 		if (GetTeleportController() == LeftController) 
 		{ 
+			// DEBUG
 			UpdateActionMapping(InputSettings, TEXT("Teleport"), FKey(), EKeys::SpaceBar);
 			UpdateActionMapping(InputSettings, TEXT("CheckTeleport"), FKey(), EKeys::LeftShift);
+			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::W, 1);
+			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::S, -1);
+			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::D, 1);
+			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::A, -1);
+
 			UpdateActionMapping(InputSettings, TEXT("Teleport"), FKey(), EKeys::OculusTouch_Left_Trigger_Click); // sometimes oculus controllers dont work so for debug using spacebar
 			UpdateActionMapping(InputSettings, TEXT("CheckTeleport"), FKey(), EKeys::OculusTouch_Left_Thumbstick_Down);
 			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Right_Thumbstick_Up, 1);
@@ -99,8 +105,14 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		} 
 		else 
 		{ 
+			// DEBUG
 			UpdateActionMapping(InputSettings, TEXT("Teleport"), FKey(), EKeys::SpaceBar);
 			UpdateActionMapping(InputSettings, TEXT("CheckTeleport"), FKey(), EKeys::LeftShift);
+			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::W, 1);
+			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::S, -1);
+			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::D, 1);
+			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::A, -1);
+
 			UpdateActionMapping(InputSettings, TEXT("Teleport"), FKey(), EKeys::OculusTouch_Right_Trigger_Click); // sometimes oculus controllers dont work so for debug using spacebar
 			UpdateActionMapping(InputSettings, TEXT("CheckTeleport"), FKey(), EKeys::OculusTouch_Right_Thumbstick_Down);
 			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Left_Thumbstick_Up, 1);
@@ -140,8 +152,7 @@ void AVRCharacter::EndTeleport()
 {
 	PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	FVector TeleportLocation;
-	FRotator Normal;
-	GetTeleportController()->FindTeleportDestination(TeleportLocation, Normal); // could be more efficient to simply grab the position as usual instead of recalculating it all
+	GetTeleportController()->FindTeleportDestination(TeleportLocation); // could be more efficient to simply grab the position as usual instead of recalculating it all
 	SetActorLocation(TeleportLocation + FVector(0, 0, GetCapsuleComponent()->GetScaledCapsuleHalfHeight())); // Capsule added to stop teleporting into floor
 	FTimerHandle Handle;
 	GetWorldTimerManager().SetTimer(Handle, this, &AVRCharacter::FadeOutFromTeleport, TeleportTime);

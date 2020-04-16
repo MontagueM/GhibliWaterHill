@@ -25,7 +25,7 @@ public:
 
 	void SetHand(EControllerHand Hand);
 	bool bCanHandTeleport();
-	bool FindTeleportDestination(FVector& Location, FRotator& Normal);
+	bool FindTeleportDestination(FVector& Location);
 	void UpdateTeleportationCheck();
 	void SetCanCheckTeleport(bool bCheck);
 private:

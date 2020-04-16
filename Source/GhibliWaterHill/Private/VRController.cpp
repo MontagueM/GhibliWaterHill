@@ -51,7 +51,7 @@ void AVRController::SetHand(EControllerHand SetHand) {
 
 EControllerHand AVRController::GetHand() { return Hand; }
 
-bool AVRController::FindTeleportDestination(FVector& Location, FRotator& Normal)
+bool AVRController::FindTeleportDestination(FVector& Location)
 {
 	/// Using rotateangleaxis for easiness in teleportation handling (rotates it down from the controller)
 
@@ -69,7 +69,6 @@ bool AVRController::FindTeleportDestination(FVector& Location, FRotator& Normal)
 	Params.bTraceComplex = true; // to stop it not showing teleport places due to weird collisions in the map
 	Params.SimFrequency = TeleportSimulationFrequency; // dictates smoothness of arc
 	bool bHit = UGameplayStatics::PredictProjectilePath(this, Params, Result);
-	Normal = Result.HitResult.ImpactNormal.Rotation();
 	/// Draw teleport curve
 	UpdateSpline(Result);
 
@@ -123,12 +122,11 @@ void AVRController::UpdateTeleportationCheck()
 	UE_LOG(LogTemp, Warning, TEXT("Updating teleportation"))
 	/// Destination for teleport
 	FVector TeleportLocation;
-	FRotator Normal;
-	bool CanTeleport = FindTeleportDestination(TeleportLocation, Normal);
+	bool CanTeleport = FindTeleportDestination(TeleportLocation);
 	if (CanTeleport && bCanHandTeleport() && bCanCheckTeleport)
 	{
 		DestinationMarker->SetWorldLocation(TeleportLocation);
-		DestinationMarker->SetWorldRotation(Normal + FRotator(90, 0, 0));
+		DestinationMarker->SetWorldRotation(FRotator::ZeroRotator);
 		DestinationMarker->SetVisibility(true);
 		//MarkerPoint->SetVisibility(true);
 	}
