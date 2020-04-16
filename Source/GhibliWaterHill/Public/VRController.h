@@ -25,7 +25,7 @@ public:
 
 	void SetHand(EControllerHand Hand);
 	bool bCanHandTeleport();
-	bool FindTeleportDestination(FVector& Location);
+	bool FindTeleportDestination(FVector& Location, FRotator& Normal);
 private:
 	// 	UPROPERTY(VisibleAnywhere)
 	EControllerHand Hand;
@@ -58,6 +58,8 @@ private:
 	TArray<class USplineMeshComponent*> TeleportMeshObjects;
 	UPROPERTY(EditDefaultsOnly)
 	EControllerHand TeleportHand = EControllerHand::Left;
+	UPROPERTY(EditDefaultsOnly)
+	FVector DestinationMarkerScale = FVector(0.7, 0.7, 0.5);
 private:
 	void UpdateSpline(struct FPredictProjectilePathResult Result);
 	void UpdateTeleportation();

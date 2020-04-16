@@ -79,7 +79,7 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 	if (LeftController && RightController)
 	{
-		if (GetTeleportController() == LeftController) { UpdateActionMapping(TEXT("Teleport"), FKey(), EKeys::OculusTouch_Left_Trigger_Click); }
+		if (GetTeleportController() == LeftController) { UpdateActionMapping(TEXT("Teleport"), FKey(), EKeys::SpaceBar); } // sometimes oculus controllers dont work so for debug using spacebar
 		else { UpdateActionMapping(TEXT("Teleport"), FKey(), EKeys::OculusTouch_Right_Trigger_Click); }
 	}
 	PlayerInputComponent->BindAxis(TEXT("Forward"), this, &AVRCharacter::MoveForward);
@@ -111,7 +111,8 @@ void AVRCharacter::EndTeleport()
 {
 	PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	FVector TeleportLocation;
-	GetTeleportController()->FindTeleportDestination(TeleportLocation); // could be more efficient to simply grab the position as usual instead of recalculating it all
+	FRotator Normal;
+	GetTeleportController()->FindTeleportDestination(TeleportLocation, Normal); // could be more efficient to simply grab the position as usual instead of recalculating it all
 	SetActorLocation(TeleportLocation + FVector(0, 0, GetCapsuleComponent()->GetScaledCapsuleHalfHeight())); // Capsule added to stop teleporting into floor
 	FTimerHandle Handle;
 	GetWorldTimerManager().SetTimer(Handle, this, &AVRCharacter::FadeOutFromTeleport, TeleportTime);
@@ -143,6 +144,6 @@ void AVRCharacter::UpdateActionMapping(FName ActionName, FKey OldKey, FKey NewKe
 	if (OldKey.IsValid()) { InputSettings->RemoveActionMapping(FInputActionKeyMapping(ActionName, OldKey)); }
 	if (!ensure(NewKey.IsValid())) { return; }
 	InputSettings->AddActionMapping(FInputActionKeyMapping(ActionName, NewKey));
-
+	UE_LOG(LogTemp, Warning, TEXT("wa %s"), *NewKey.GetFName().ToString())
 	InputSettings->SaveKeyMappings();
 }
