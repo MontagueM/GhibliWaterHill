@@ -22,6 +22,9 @@ AVRController::AVRController()
 	DestinationMarker->SetupAttachment(GetRootComponent());
 	DestinationMarker->SetWorldScale3D(DestinationMarkerScale);
 
+	MarkerPoint = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MarkerPoint"));
+	MarkerPoint->SetupAttachment(DestinationMarker);
+
 	TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("TeleportPath"));
 	TeleportPath->SetupAttachment(GetRootComponent());
 }
@@ -30,7 +33,6 @@ AVRController::AVRController()
 void AVRController::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
@@ -53,7 +55,7 @@ bool AVRController::FindTeleportDestination(FVector& Location, FRotator& Normal)
 {
 	/// Using rotateangleaxis for easiness in teleportation handling (rotates it down from the controller)
 
-	FVector StartLocation = GetActorLocation();
+	FVector StartLocation = GetActorLocation() + GetActorForwardVector()*5;
 	FVector Direction = GetActorForwardVector().RotateAngleAxis(15, GetActorRightVector());
 
 	FPredictProjectilePathResult Result;
@@ -65,6 +67,7 @@ bool AVRController::FindTeleportDestination(FVector& Location, FRotator& Normal)
 		this);
 	//Params.DrawDebugType = EDrawDebugTrace::ForOneFrame;
 	Params.bTraceComplex = true; // to stop it not showing teleport places due to weird collisions in the map
+	Params.SimFrequency = TeleportSimulationFrequency; // dictates smoothness of arc
 	bool bHit = UGameplayStatics::PredictProjectilePath(this, Params, Result);
 	Normal = Result.HitResult.ImpactNormal.Rotation();
 	/// Draw teleport curve
@@ -92,6 +95,7 @@ void AVRController::UpdateSpline(FPredictProjectilePathResult Result)
 	{
 		if (Result.PathData.Num() > TeleportMeshObjects.Num()) // only add if we need to add another one
 		{
+
 			SplineMesh = NewObject<USplineMeshComponent>(this);
 			// Doesn't seem to need to be attached so I won't attach it, just breaks otherwise
 			//SplineMesh->SetMobility(EComponentMobility::Movable);
@@ -127,10 +131,12 @@ void AVRController::UpdateTeleportation()
 		DestinationMarker->SetWorldLocation(TeleportLocation);
 		DestinationMarker->SetWorldRotation(Normal + FRotator(90, 0, 0));
 		DestinationMarker->SetVisibility(true);
+		MarkerPoint->SetVisibility(true);
 	}
 	else
 	{
 		DestinationMarker->SetVisibility(false);
+		MarkerPoint->SetVisibility(false);
 	}
 }
 

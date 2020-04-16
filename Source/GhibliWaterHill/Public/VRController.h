@@ -41,6 +41,8 @@ private:
 	class UStaticMeshComponent* DestinationMarker = nullptr;
 	UPROPERTY(VisibleAnywhere)
 	class USplineComponent* TeleportPath = nullptr;
+	UPROPERTY(VisibleAnywhere)
+	class UStaticMeshComponent* MarkerPoint = nullptr;
 
 	UPROPERTY(EditDefaultsOnly)
 	float TeleportProjectileSpeed = 800;
@@ -48,6 +50,8 @@ private:
 	float TeleportProjectileRadius = 10;
 	UPROPERTY(EditDefaultsOnly)
 	float TeleportSimulationTime = 5;
+	UPROPERTY(EditDefaultsOnly)
+	float TeleportSimulationFrequency = 50;
 	UPROPERTY(EditDefaultsOnly)
 	FVector TeleportNavExtent = FVector(100, 100, 100);
 	UPROPERTY(EditDefaultsOnly)
