@@ -26,6 +26,8 @@ public:
 	void SetHand(EControllerHand Hand);
 	bool bCanHandTeleport();
 	bool FindTeleportDestination(FVector& Location, FRotator& Normal);
+	void UpdateTeleportationCheck();
+	void SetCanCheckTeleport(bool bCheck);
 private:
 	// 	UPROPERTY(VisibleAnywhere)
 	EControllerHand Hand;
@@ -64,7 +66,8 @@ private:
 	EControllerHand TeleportHand = EControllerHand::Left;
 	UPROPERTY(EditDefaultsOnly)
 	FVector DestinationMarkerScale = FVector(0.7, 0.7, 0.5);
+
+	bool bCanCheckTeleport = false;
 private:
 	void UpdateSpline(struct FPredictProjectilePathResult Result);
-	void UpdateTeleportation();
 };

@@ -40,7 +40,7 @@ void AVRController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bCanHandTeleport()) { UpdateTeleportation(); }
+	if (bCanHandTeleport()) { UpdateTeleportationCheck(); }
 		
 }
 
@@ -97,9 +97,6 @@ void AVRController::UpdateSpline(FPredictProjectilePathResult Result)
 		{
 
 			SplineMesh = NewObject<USplineMeshComponent>(this);
-			// Doesn't seem to need to be attached so I won't attach it, just breaks otherwise
-			//SplineMesh->SetMobility(EComponentMobility::Movable);
-			//SplineMesh->AttachToComponent(TeleportPath, FAttachmentTransformRules::KeepRelativeTransform);
 			SplineMesh->SetStaticMesh(TeleportArcMesh);
 			SplineMesh->SetMaterial(0, TeleportArcMaterial);
 			SplineMesh->RegisterComponent();
@@ -118,10 +115,12 @@ void AVRController::UpdateSpline(FPredictProjectilePathResult Result)
 			TeleportMeshObjects[i - 1]->SetVisibility(true);
 		}
 	}
+	MarkerPoint->SetVisibility(true);
 }
 
-void AVRController::UpdateTeleportation()
+void AVRController::UpdateTeleportationCheck()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Updating teleportation"))
 	/// Destination for teleport
 	FVector TeleportLocation;
 	FRotator Normal;
@@ -131,17 +130,29 @@ void AVRController::UpdateTeleportation()
 		DestinationMarker->SetWorldLocation(TeleportLocation);
 		DestinationMarker->SetWorldRotation(Normal + FRotator(90, 0, 0));
 		DestinationMarker->SetVisibility(true);
-		MarkerPoint->SetVisibility(true);
+		//MarkerPoint->SetVisibility(true);
 	}
 	else
 	{
 		DestinationMarker->SetVisibility(false);
-		MarkerPoint->SetVisibility(false);
+		//MarkerPoint->SetVisibility(false);
 	}
 }
 
 bool AVRController::bCanHandTeleport()
 {
-	if (Hand == TeleportHand) { return true; }
+	if (Hand == TeleportHand && bCanCheckTeleport) { return true; }
 	return false;
+}
+
+void AVRController::SetCanCheckTeleport(bool bCheck)
+{
+	bCanCheckTeleport = bCheck;
+	DestinationMarker->SetVisibility(false);
+	MarkerPoint->SetVisibility(false);
+	for (USplineMeshComponent* u : TeleportMeshObjects)
+	{
+		u->SetVisibility(false);
+	}
+	TeleportPath->ClearSplinePoints(true);
 }

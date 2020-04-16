@@ -77,14 +77,33 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 {
 	if (!ensure(PlayerInputComponent)) { return; }
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	// delete all old keymaps
+	UInputSettings* InputSettings = const_cast<UInputSettings*>(GetDefault<UInputSettings>());
+	TArray<FInputActionKeyMapping> KeyMappings = InputSettings->GetActionMappings();
+	for (FInputActionKeyMapping Mapping : KeyMappings)
+	{
+		InputSettings->RemoveActionMapping(Mapping);
+	}
+
 	if (LeftController && RightController)
 	{
-		if (GetTeleportController() == LeftController) { UpdateActionMapping(TEXT("Teleport"), FKey(), EKeys::SpaceBar); } // sometimes oculus controllers dont work so for debug using spacebar
-		else { UpdateActionMapping(TEXT("Teleport"), FKey(), EKeys::OculusTouch_Right_Trigger_Click); }
+		if (GetTeleportController() == LeftController) 
+		{ 
+			UpdateActionMapping(InputSettings, TEXT("Teleport"), FKey(), EKeys::OculusTouch_Left_Trigger_Click); // sometimes oculus controllers dont work so for debug using spacebar
+			UpdateActionMapping(InputSettings, TEXT("CheckTeleport"), FKey(), EKeys::OculusTouch_Left_Thumbstick_Down);
+		} 
+		else 
+		{ 
+			UpdateActionMapping(InputSettings, TEXT("Teleport"), FKey(), EKeys::SpaceBar);
+			UpdateActionMapping(InputSettings, TEXT("CheckTeleport"), FKey(), EKeys::LeftShift);
+		}
 	}
 	PlayerInputComponent->BindAxis(TEXT("Forward"), this, &AVRCharacter::MoveForward);
 	PlayerInputComponent->BindAxis(TEXT("Right"), this, &AVRCharacter::MoveRight);
 	PlayerInputComponent->BindAction(TEXT("Teleport"), IE_Released, this, &AVRCharacter::BeginTeleport);
+	PlayerInputComponent->BindAction(TEXT("CheckTeleport"), IE_Pressed, this, &AVRCharacter::StartTeleportationCheck);
+	PlayerInputComponent->BindAction(TEXT("CheckTeleport"), IE_Released, this, &AVRCharacter::StopTeleportationCheck);
 }
 
 void AVRCharacter::MoveForward(float Scale)
@@ -130,20 +149,21 @@ AVRController* AVRCharacter::GetTeleportController()
 }
 
 
-void AVRCharacter::UpdateActionMapping(FName ActionName, FKey OldKey, FKey NewKey)
+void AVRCharacter::UpdateActionMapping(UInputSettings* InputSettings, FName ActionName, FKey OldKey, FKey NewKey)
 {
-	UInputSettings* InputSettings = const_cast<UInputSettings*>(GetDefault<UInputSettings>());
-
-	// delete all old keymaps
-	TArray<FInputActionKeyMapping> KeyMappings = InputSettings->GetActionMappings();
-	for (FInputActionKeyMapping Mapping : KeyMappings)
-	{
-		InputSettings->RemoveActionMapping(Mapping);
-	}
-
 	if (OldKey.IsValid()) { InputSettings->RemoveActionMapping(FInputActionKeyMapping(ActionName, OldKey)); }
 	if (!ensure(NewKey.IsValid())) { return; }
 	InputSettings->AddActionMapping(FInputActionKeyMapping(ActionName, NewKey));
 	UE_LOG(LogTemp, Warning, TEXT("wa %s"), *NewKey.GetFName().ToString())
 	InputSettings->SaveKeyMappings();
+}
+
+void AVRCharacter::StartTeleportationCheck()
+{
+	GetTeleportController()->SetCanCheckTeleport(true);
+}
+
+void AVRCharacter::StopTeleportationCheck()
+{
+	GetTeleportController()->SetCanCheckTeleport(false);
 }
