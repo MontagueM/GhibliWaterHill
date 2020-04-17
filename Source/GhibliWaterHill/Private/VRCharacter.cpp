@@ -11,11 +11,11 @@
 #include "TimerManager.h"
 #include "Components/CapsuleComponent.h"
 #include "VRController.h"
-
 #include "Runtime/Engine/Classes/GameFramework/InputSettings.h"
 #include "InputCoreTypes.h"
 #include "Runtime/CoreUObject/Public/UObject/UObjectGlobals.h"
 
+#include "GameFramework/CharacterMovementComponent.h" 
 
 // Sets default values
 AVRCharacter::AVRCharacter()
@@ -102,6 +102,7 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Right_Thumbstick_Down, -1);
 			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Right_Thumbstick_Right, 1);
 			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Right_Thumbstick_Left, -1);
+			UpdateAxisMapping(InputSettings, TEXT("TurnRight"), EKeys::OculusTouch_Left_Thumbstick_X, 1);
 		} 
 		else 
 		{ 
@@ -119,10 +120,12 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Left_Thumbstick_Down, -1);
 			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Left_Thumbstick_Right, 1);
 			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Left_Thumbstick_Left, -1);
+			UpdateAxisMapping(InputSettings, TEXT("TurnRight"), EKeys::OculusTouch_Right_Thumbstick_X, 1);
 		}
 	}
 	PlayerInputComponent->BindAxis(TEXT("Forward"), this, &AVRCharacter::MoveForward);
 	PlayerInputComponent->BindAxis(TEXT("Right"), this, &AVRCharacter::MoveRight);
+	PlayerInputComponent->BindAxis(TEXT("TurnRight"), this, &AVRCharacter::TurnRight);
 	PlayerInputComponent->BindAxis(TEXT("Teleport"), this, &AVRCharacter::TryTeleport);
 	PlayerInputComponent->BindAction(TEXT("CheckTeleport"), IE_Pressed, this, &AVRCharacter::StartTeleportationCheck);
 	PlayerInputComponent->BindAction(TEXT("CheckTeleport"), IE_Released, this, &AVRCharacter::StopTeleportationCheck);
@@ -138,12 +141,34 @@ void AVRCharacter::MoveRight(float Scale)
 	AddMovementInput(Camera->GetRightVector(), Scale);
 }
 
+void AVRCharacter::TurnRight(float Scale)
+{
+	FRotator CurrentRotation = VRRoot->GetComponentRotation();
+	if (TurnType == ETurnType::Snap && !HaveSnapped && abs(Scale) > 0.6)
+	{
+		if (Scale > 0.5) { Scale = 1; }
+		else if (Scale < -0.5) {Scale = -1; }
+		UE_LOG(LogTemp, Warning, TEXT("Trying to snap turn"))
+		VRRoot->SetWorldRotation(CurrentRotation + FRotator(0, AngleToSnap * Scale, 0));
+		HaveSnapped = true;
+	}
+	else if (TurnType == ETurnType::Snap && abs(Scale) < 0.5 && abs(Scale) > 0)
+	{
+		HaveSnapped = false;
+	}
+	else if (TurnType == ETurnType::Smooth && abs(Scale) > 0.7)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Trying to smooth turn"))
+		VRRoot->SetWorldRotation(CurrentRotation + FRotator(0, Scale*SmoothTurnSpeed/40, 0));
+	}
+}
+
 void AVRCharacter::TryTeleport(float Scale)
 {
 	if (bVelocityForTeleport(Scale) && !bCurrentlyTeleporting)
 	{
-		bCurrentlyTeleporting = true;
 		UE_LOG(LogTemp, Warning, TEXT("Teleporting"))
+		bCurrentlyTeleporting = true;
 		// Fade out
 		PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 		PlayerCameraManager->StartCameraFade(0, 1, TeleportBlinkTime / 2, FLinearColor::Black, false, true); // last needs to be true otherwise flashes white
@@ -157,6 +182,7 @@ void AVRCharacter::EndTeleport()
 	PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
 	FVector TeleportLocation;
 	GetTeleportController()->FindTeleportDestination(TeleportLocation); // could be more efficient to simply grab the position as usual instead of recalculating it all
+	StopTeleportationCheck(); // we do this to reset the meshes sticking around
 	SetActorLocation(TeleportLocation + FVector(0, 0, GetCapsuleComponent()->GetScaledCapsuleHalfHeight())); // Capsule added to stop teleporting into floor
 	FTimerHandle Handle;
 	GetWorldTimerManager().SetTimer(Handle, this, &AVRCharacter::FadeOutFromTeleport, TeleportTime);
@@ -215,8 +241,18 @@ bool AVRCharacter::bVelocityForTeleport(float Scale)
 	if (ScaleHistory.Num() == ScaleHistoryMaxNum)
 	{
 		float Difference = ScaleHistory[ScaleHistoryMaxNum - 1] - ScaleHistory[0];
-		if (Difference > 0.2) // Difference needs to be negative as only when pulling back up
+		bool bAllScalesNegative = true;
+		for (float S : ScaleHistory) 
+		{ 
+			if (S > 0) 
+			{ 
+				bAllScalesNegative = false; 
+				break; 
+			} 
+		}
+		if (Difference > 0.2 && bAllScalesNegative) // Difference needs to be negative as only when pulling back up
 		{
+			//UE_LOG(LogTemp, Warning, TEXT("a %f"), ScaleHistory.Last())
 			return true;
 		}
 	}

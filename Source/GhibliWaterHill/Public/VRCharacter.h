@@ -7,6 +7,14 @@
 #include "Containers/Queue.h"
 #include "VRCharacter.generated.h"
 
+UENUM()
+enum class ETurnType : uint8
+{
+	Snap,
+	Smooth
+};
+
+
 UCLASS()
 class GHIBLIWATERHILL_API AVRCharacter : public ACharacter
 {
@@ -27,6 +35,7 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	void StopTeleportationCheck();
 private:
 	UPROPERTY()
 	class UCameraComponent* Camera = nullptr;
@@ -40,22 +49,29 @@ private:
 	float TeleportBlinkTime = 0.3;
 	UPROPERTY(EditDefaultsOnly)
 	float TeleportTime = 0.1;
+	UPROPERTY(EditDefaultsOnly)
+	ETurnType TurnType = ETurnType::Snap;
+	UPROPERTY(EditDefaultsOnly)
+	float AngleToSnap = 45;
+	UPROPERTY(EditDefaultsOnly)
+	float SmoothTurnSpeed = 22;
 
 	int32 ScaleHistoryMaxNum = 5;
 	TArray<float> ScaleHistory;
 	bool bCurrentlyTeleporting = false;
 	class APlayerCameraManager* PlayerCameraManager = nullptr;
+	bool HaveSnapped = false;
 
 private:
 	void MoveForward(float Scale);
 	void MoveRight(float Scale);
+	void TurnRight(float Scale);
 	void TryTeleport(float Scale);
 	void EndTeleport();
 	void FadeOutFromTeleport();
 	void UpdateActionMapping(class UInputSettings* InputSettings, FName ActionName, FKey OldKey, FKey NewKey);
 	void UpdateAxisMapping(class UInputSettings* InputSettings, FName AxisName, FKey Key, float Scale);
 	void StartTeleportationCheck();
-	void StopTeleportationCheck();
 	bool bVelocityForTeleport(float Scale);
 	AVRController* GetTeleportController();
 

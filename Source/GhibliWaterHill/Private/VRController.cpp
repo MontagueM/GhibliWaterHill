@@ -61,7 +61,7 @@ bool AVRController::FindTeleportDestination(FVector& Location)
 	FPredictProjectilePathResult Result;
 	FPredictProjectilePathParams Params(TeleportProjectileRadius,
 		StartLocation,
-		Direction * TeleportProjectileSpeed,
+		Direction* TeleportProjectileSpeed,
 		TeleportSimulationTime,
 		ECollisionChannel::ECC_Visibility,
 		this);
@@ -69,7 +69,7 @@ bool AVRController::FindTeleportDestination(FVector& Location)
 	Params.bTraceComplex = true; // to stop it not showing teleport places due to weird collisions in the map
 	Params.SimFrequency = TeleportSimulationFrequency; // dictates smoothness of arc
 	bool bHit = UGameplayStatics::PredictProjectilePath(this, Params, Result);
-	/// Draw teleport curve
+	/// Draw teleport curve, annoying its here though could move it
 	UpdateSpline(Result);
 
 	/// We want to make sure we are also allowed to teleport there
@@ -126,8 +126,8 @@ void AVRController::UpdateTeleportationCheck()
 	//UE_LOG(LogTemp, Warning, TEXT("Updating teleportation"))
 	/// Destination for teleport
 	FVector TeleportLocation;
-	bool CanTeleport = FindTeleportDestination(TeleportLocation);
-	if (CanTeleport && bCanHandTeleport() && bCanCheckTeleport)
+	bool bTeleportDestinationExists = FindTeleportDestination(TeleportLocation);
+	if (bTeleportDestinationExists && bCanHandTeleport() && bCanCheckTeleport)
 	{
 		DestinationMarker->SetWorldLocation(TeleportLocation);
 		DestinationMarker->SetWorldRotation(FRotator::ZeroRotator);
