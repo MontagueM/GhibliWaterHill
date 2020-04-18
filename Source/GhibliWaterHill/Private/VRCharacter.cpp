@@ -15,8 +15,6 @@
 #include "InputCoreTypes.h"
 #include "Runtime/CoreUObject/Public/UObject/UObjectGlobals.h"
 
-#include "GameFramework/CharacterMovementComponent.h" 
-
 // Sets default values
 AVRCharacter::AVRCharacter()
 {
@@ -122,6 +120,8 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Left_Thumbstick_Left, -1);
 			UpdateAxisMapping(InputSettings, TEXT("TurnRight"), EKeys::OculusTouch_Right_Thumbstick_X, 1);
 		}
+		UpdateAxisMapping(InputSettings, TEXT("Grab"), EKeys::OculusTouch_Left_Grip_Axis, 1);
+		UpdateAxisMapping(InputSettings, TEXT("Grab"), EKeys::OculusTouch_Right_Grip_Axis, -1);
 	}
 	PlayerInputComponent->BindAxis(TEXT("Forward"), this, &AVRCharacter::MoveForward);
 	PlayerInputComponent->BindAxis(TEXT("Right"), this, &AVRCharacter::MoveRight);
@@ -129,6 +129,7 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAxis(TEXT("Teleport"), this, &AVRCharacter::TryTeleport);
 	PlayerInputComponent->BindAction(TEXT("CheckTeleport"), IE_Pressed, this, &AVRCharacter::StartTeleportationCheck);
 	PlayerInputComponent->BindAction(TEXT("CheckTeleport"), IE_Released, this, &AVRCharacter::StopTeleportationCheck);
+	PlayerInputComponent->BindAxis(TEXT("Grab"), this, &AVRCharacter::SendGrabRequest);
 }
 
 void AVRCharacter::MoveForward(float Scale)
@@ -267,4 +268,19 @@ bool AVRCharacter::bVelocityForTeleport(float Scale)
 		}
 	}
 	return false;
+}
+
+
+void AVRCharacter::SendGrabRequest(float Scale)
+{
+	//UE_LOG(LogTemp, Warning, TEXT("Sending request %f"), Scale)
+	if (Scale > 0.25) { LeftController->TryGrab(); }
+	else if (0 < Scale && Scale <= 0.25) { LeftController->ReleaseGrab(); }
+	else if (Scale < -0.25) { RightController->TryGrab(); }
+	else if (-0.25 <= Scale && Scale < 0) { RightController->ReleaseGrab(); }
+	else
+	{
+		LeftController->ReleaseGrab();
+		RightController->ReleaseGrab();
+	}
 }

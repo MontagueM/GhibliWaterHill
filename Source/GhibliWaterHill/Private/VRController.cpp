@@ -8,6 +8,11 @@
 #include "NavigationSystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/SplineMeshComponent.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
+
+#include "Engine/StaticMeshActor.h" 
+
+using namespace std;
 
 // Sets default values
 AVRController::AVRController()
@@ -27,6 +32,11 @@ AVRController::AVRController()
 
 	TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("TeleportPath"));
 	TeleportPath->SetupAttachment(GetRootComponent());
+
+	PhysicsHandle = CreateDefaultSubobject<UPhysicsHandleComponent>(TEXT("PhysicsHandle"));
+
+	GrabVolume = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GrabVolume"));
+	GrabVolume->SetupAttachment(GetRootComponent());
 }
 
 // Called when the game starts or when spawned
@@ -43,6 +53,13 @@ void AVRController::Tick(float DeltaTime)
 	if (bCanHandTeleport() && bCanCheckTeleport) 
 	{ 
 		bAllowCharacterTeleport = UpdateTeleportationCheck();
+	}
+
+	if (bIsGrabbing)
+	{
+		// move object we're holding
+		FVector MoveVector = GetActorForwardVector() + GetActorRotation().Vector() * FVector::Distance(GetActorLocation(), GrabbedActor->GetComponentLocation());
+		PhysicsHandle->SetTargetLocation(MoveVector);
 	}
 		
 }
@@ -125,7 +142,6 @@ void AVRController::UpdateSpline(FPredictProjectilePathResult Result)
 
 bool AVRController::UpdateTeleportationCheck()
 {
-	//UE_LOG(LogTemp, Warning, TEXT("Updating teleportation"))
 	/// Destination for teleport
 	FVector TeleportLocation;
 	bool bTeleportDestinationExists = FindTeleportDestination(TeleportLocation);
@@ -167,4 +183,37 @@ void AVRController::SetCanCheckTeleport(bool bCheck)
 		u->SetVisibility(false);
 	}
 	TeleportPath->ClearSplinePoints(true);
+}
+
+void AVRController::TryGrab()
+{
+	/*
+	Get collision area around controller for grabbing
+	If any objects, get closest to controller
+	Use PhysicsHandle or socket
+	*/
+	if (bIsGrabbing) { return; }
+
+	TArray<UPrimitiveComponent*> OverlappingActors;
+	GrabVolume->GetOverlappingComponents(OverlappingActors);
+	if (OverlappingActors.Num() == 0) 
+	{ 
+		UE_LOG(LogTemp, Warning, TEXT("No actors"))
+		return; 
+	}
+	UE_LOG(LogTemp, Warning, TEXT("Actors"))
+	bIsGrabbing = true;
+	GrabbedActor = OverlappingActors[0];
+	UE_LOG(LogTemp, Warning, TEXT("Grabbing %s with %s"), *GrabbedActor->GetName(), *PhysicsHandle->GetName())
+	PhysicsHandle->GrabComponentAtLocationWithRotation(GrabbedActor, NAME_None, GrabbedActor->GetComponentLocation(), GetOwner()->GetActorRotation());
+}
+
+void AVRController::ReleaseGrab()
+{
+	if (bIsGrabbing)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Release"))
+		PhysicsHandle->ReleaseComponent();
+		bIsGrabbing = false;
+	}
 }

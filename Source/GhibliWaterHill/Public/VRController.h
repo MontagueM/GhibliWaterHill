@@ -29,6 +29,8 @@ public:
 	bool FindTeleportDestination(FVector& Location);
 	bool UpdateTeleportationCheck();
 	void SetCanCheckTeleport(bool bCheck);
+	void TryGrab();
+	void ReleaseGrab();
 
 	bool bAllowCharacterTeleport = false;
 
@@ -51,6 +53,10 @@ private:
 	class USplineComponent* TeleportPath = nullptr;
 	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* MarkerPoint = nullptr;
+	UPROPERTY(VisibleAnywhere)
+	class UPhysicsHandleComponent* PhysicsHandle = nullptr;
+	UPROPERTY(EditDefaultsOnly)
+	class UStaticMeshComponent* GrabVolume = nullptr;
 
 	UPROPERTY(EditDefaultsOnly)
 	float TeleportProjectileSpeed = 800;
@@ -72,6 +78,8 @@ private:
 	FVector DestinationMarkerScale = FVector(0.7, 0.7, 0.5);
 
 	bool bCanCheckTeleport = false;
+	bool bIsGrabbing = false;
+	class UPrimitiveComponent* GrabbedActor = nullptr;
 private:
 	void UpdateSpline(struct FPredictProjectilePathResult Result);
 };

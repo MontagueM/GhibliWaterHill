@@ -52,6 +52,8 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AVRController> HandControllerClass;
 	UPROPERTY(EditDefaultsOnly)
+	EMovementCoupling MovementCoupling = EMovementCoupling::Head;
+	UPROPERTY(EditDefaultsOnly)
 	float TeleportBlinkTime = 0.3;
 	UPROPERTY(EditDefaultsOnly)
 	float TeleportTime = 0.1;
@@ -61,8 +63,6 @@ private:
 	float AngleToSnap = 45;
 	UPROPERTY(EditDefaultsOnly)
 	float SmoothTurnSpeed = 22;
-	UPROPERTY(EditDefaultsOnly)
-	EMovementCoupling MovementCoupling = EMovementCoupling::Head;
 
 	int32 ScaleHistoryMaxNum = 5;
 	TArray<float> ScaleHistory;
@@ -75,6 +75,7 @@ private:
 	void MoveRight(float Scale);
 	void TurnRight(float Scale);
 	void TryTeleport(float Scale);
+	void SendGrabRequest(float Scale);
 	void EndTeleport();
 	void FadeOutFromTeleport();
 	void UpdateActionMapping(class UInputSettings* InputSettings, FName ActionName, FKey OldKey, FKey NewKey);
