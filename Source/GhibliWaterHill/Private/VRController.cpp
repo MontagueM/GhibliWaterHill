@@ -40,7 +40,10 @@ void AVRController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bCanHandTeleport() && bCanCheckTeleport) { UpdateTeleportationCheck(); }
+	if (bCanHandTeleport() && bCanCheckTeleport) 
+	{ 
+		bAllowCharacterTeleport = UpdateTeleportationCheck();
+	}
 		
 }
 
@@ -71,7 +74,6 @@ bool AVRController::FindTeleportDestination(FVector& Location)
 	bool bHit = UGameplayStatics::PredictProjectilePath(this, Params, Result);
 	/// Draw teleport curve, annoying its here though could move it
 	UpdateSpline(Result);
-
 	/// We want to make sure we are also allowed to teleport there
 	UNavigationSystemV1* UNavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
 	if (!ensure(UNavSystem)) { return false; }
@@ -121,7 +123,7 @@ void AVRController::UpdateSpline(FPredictProjectilePathResult Result)
 	MarkerPoint->SetVisibility(true);
 }
 
-void AVRController::UpdateTeleportationCheck()
+bool AVRController::UpdateTeleportationCheck()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("Updating teleportation"))
 	/// Destination for teleport
@@ -132,17 +134,27 @@ void AVRController::UpdateTeleportationCheck()
 		DestinationMarker->SetWorldLocation(TeleportLocation);
 		DestinationMarker->SetWorldRotation(FRotator::ZeroRotator);
 		DestinationMarker->SetVisibility(true);
+		return true;
 	}
 	else
 	{
 		DestinationMarker->SetVisibility(false);
+		return false;
 	}
 }
 
 bool AVRController::bCanHandTeleport()
 {
-	if (Hand == TeleportHand) { return true; }
+	if (Hand == TeleportHand ) { return true; }
+
 	return false;
+}
+
+bool AVRController::bCanHandMove()
+{
+	if (Hand == TeleportHand) { return false; }
+
+	return true;
 }
 
 void AVRController::SetCanCheckTeleport(bool bCheck)

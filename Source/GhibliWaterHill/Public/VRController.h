@@ -25,9 +25,15 @@ public:
 
 	void SetHand(EControllerHand Hand);
 	bool bCanHandTeleport();
+	bool bCanHandMove();
 	bool FindTeleportDestination(FVector& Location);
-	void UpdateTeleportationCheck();
+	bool UpdateTeleportationCheck();
 	void SetCanCheckTeleport(bool bCheck);
+
+	bool bAllowCharacterTeleport = false;
+
+	UPROPERTY(EditDefaultsOnly)
+	EControllerHand TeleportHand = EControllerHand::Left;
 private:
 	// 	UPROPERTY(VisibleAnywhere)
 	EControllerHand Hand;
@@ -62,8 +68,6 @@ private:
 	class UMaterialInterface* TeleportArcMaterial;
 	UPROPERTY() // need this for proper garbage collection
 	TArray<class USplineMeshComponent*> TeleportMeshObjects;
-	UPROPERTY(EditDefaultsOnly)
-	EControllerHand TeleportHand = EControllerHand::Left;
 	UPROPERTY(EditDefaultsOnly)
 	FVector DestinationMarkerScale = FVector(0.7, 0.7, 0.5);
 

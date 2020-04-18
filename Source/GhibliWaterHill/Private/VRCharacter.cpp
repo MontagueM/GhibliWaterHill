@@ -133,7 +133,14 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 void AVRCharacter::MoveForward(float Scale)
 {
-	AddMovementInput(Camera->GetForwardVector(), Scale);
+	// If Camera, will be Head coupled
+	if (MovementCoupling == EMovementCoupling::Head) { AddMovementInput(Camera->GetForwardVector(), Scale); }
+	else if (MovementCoupling == EMovementCoupling::Hand)
+	{
+		// Adding both so you need both hands moving in one direction to make a difference.
+		FVector Input = GetTeleportController()->GetActorForwardVector() + GetMovementController()->GetActorForwardVector();
+		AddMovementInput(Input.GetSafeNormal(), Scale);
+	}
 }
 
 void AVRCharacter::MoveRight(float Scale)
@@ -148,7 +155,6 @@ void AVRCharacter::TurnRight(float Scale)
 	{
 		if (Scale > 0.5) { Scale = 1; }
 		else if (Scale < -0.5) {Scale = -1; }
-		UE_LOG(LogTemp, Warning, TEXT("Trying to snap turn"))
 		VRRoot->SetWorldRotation(CurrentRotation + FRotator(0, AngleToSnap * Scale, 0));
 		HaveSnapped = true;
 	}
@@ -158,14 +164,13 @@ void AVRCharacter::TurnRight(float Scale)
 	}
 	else if (TurnType == ETurnType::Smooth && abs(Scale) > 0.7)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Trying to smooth turn"))
-		VRRoot->SetWorldRotation(CurrentRotation + FRotator(0, Scale*SmoothTurnSpeed/40, 0));
+		VRRoot->SetWorldRotation(CurrentRotation + FRotator(0, Scale*SmoothTurnSpeed/50, 0));
 	}
 }
 
 void AVRCharacter::TryTeleport(float Scale)
 {
-	if (bVelocityForTeleport(Scale) && !bCurrentlyTeleporting)
+	if (GetTeleportController()->bAllowCharacterTeleport && bVelocityForTeleport(Scale) && !bCurrentlyTeleporting)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Teleporting"))
 		bCurrentlyTeleporting = true;
@@ -200,6 +205,11 @@ AVRController* AVRCharacter::GetTeleportController()
 	else { return RightController; }
 }
 
+AVRController* AVRCharacter::GetMovementController()
+{
+	if (LeftController->bCanHandMove()) { return LeftController; }
+	else { return RightController; }
+}
 
 void AVRCharacter::UpdateActionMapping(UInputSettings* InputSettings, FName ActionName, FKey OldKey, FKey NewKey)
 {

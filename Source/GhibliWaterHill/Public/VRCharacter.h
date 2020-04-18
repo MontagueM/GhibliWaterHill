@@ -14,6 +14,12 @@ enum class ETurnType : uint8
 	Smooth
 };
 
+UENUM()
+enum class EMovementCoupling : uint8
+{
+	Head,
+	Hand
+};
 
 UCLASS()
 class GHIBLIWATERHILL_API AVRCharacter : public ACharacter
@@ -37,7 +43,7 @@ public:
 
 	void StopTeleportationCheck();
 private:
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly)
 	class UCameraComponent* Camera = nullptr;
 	UPROPERTY()
 	class USceneComponent* VRRoot = nullptr;
@@ -55,6 +61,8 @@ private:
 	float AngleToSnap = 45;
 	UPROPERTY(EditDefaultsOnly)
 	float SmoothTurnSpeed = 22;
+	UPROPERTY(EditDefaultsOnly)
+	EMovementCoupling MovementCoupling = EMovementCoupling::Head;
 
 	int32 ScaleHistoryMaxNum = 5;
 	TArray<float> ScaleHistory;
@@ -74,5 +82,6 @@ private:
 	void StartTeleportationCheck();
 	bool bVelocityForTeleport(float Scale);
 	AVRController* GetTeleportController();
+	AVRController* GetMovementController();
 
 };
