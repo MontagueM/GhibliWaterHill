@@ -45,7 +45,7 @@ public:
 private:
 	UPROPERTY(EditDefaultsOnly)
 	class UCameraComponent* Camera = nullptr;
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly)
 	class USceneComponent* VRRoot = nullptr;
 	class AVRController* LeftController = nullptr;
 	class AVRController* RightController = nullptr;
@@ -63,6 +63,14 @@ private:
 	float AngleToSnap = 45;
 	UPROPERTY(EditDefaultsOnly)
 	float SmoothTurnSpeed = 22;
+	UPROPERTY(EditDefaultsOnly)
+	float GrabActivationScale = 0.25;
+	UPROPERTY(EditDefaultsOnly)
+	float TeleportActivationScale = 0.2;
+	UPROPERTY(EditDefaultsOnly)
+	float SnapTurnActivationScale = 0.6;
+	UPROPERTY(EditDefaultsOnly)
+	float SmoothTurnActivationScale = 0.7;
 
 	int32 ScaleHistoryMaxNum = 5;
 	TArray<float> ScaleHistory;

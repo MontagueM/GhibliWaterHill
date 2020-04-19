@@ -57,9 +57,10 @@ void AVRController::Tick(float DeltaTime)
 
 	if (bIsGrabbing)
 	{
-		// move object we're holding
-		FVector MoveVector = GetActorForwardVector() + GetActorRotation().Vector() * FVector::Distance(GetActorLocation(), GrabbedActor->GetComponentLocation());
-		PhysicsHandle->SetTargetLocation(MoveVector);
+		// move object we're holding 
+		FVector MoveVector = GetActorForwardVector() + GetActorRotation().Vector() * GrabbedComponentInitDistance;
+		//UE_LOG(LogTemp, Warning, TEXT("MoveVector %s"), *MoveVector.ToString())
+		PhysicsHandle->SetTargetLocation(GetActorLocation() + MoveVector);
 	}
 		
 }
@@ -194,25 +195,19 @@ void AVRController::TryGrab()
 	*/
 	if (bIsGrabbing) { return; }
 
-	TArray<UPrimitiveComponent*> OverlappingActors;
-	GrabVolume->GetOverlappingComponents(OverlappingActors);
-	if (OverlappingActors.Num() == 0) 
-	{ 
-		UE_LOG(LogTemp, Warning, TEXT("No actors"))
-		return; 
-	}
-	UE_LOG(LogTemp, Warning, TEXT("Actors"))
+	TArray<UPrimitiveComponent*> OverlappingComponents;
+	GrabVolume->GetOverlappingComponents(OverlappingComponents);
+	if (OverlappingComponents.Num() == 0) { return; }
 	bIsGrabbing = true;
-	GrabbedActor = OverlappingActors[0];
-	UE_LOG(LogTemp, Warning, TEXT("Grabbing %s with %s"), *GrabbedActor->GetName(), *PhysicsHandle->GetName())
-	PhysicsHandle->GrabComponentAtLocationWithRotation(GrabbedActor, NAME_None, GrabbedActor->GetComponentLocation(), GetOwner()->GetActorRotation());
+	GrabbedComponent = OverlappingComponents[0];
+	PhysicsHandle->GrabComponentAtLocationWithRotation(GrabbedComponent, NAME_None, GrabbedComponent->GetComponentLocation(), GetOwner()->GetActorRotation());
+	GrabbedComponentInitDistance = FVector::Distance(GetActorLocation(), GrabbedComponent->GetComponentLocation());
 }
 
 void AVRController::ReleaseGrab()
 {
 	if (bIsGrabbing)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Release"))
 		PhysicsHandle->ReleaseComponent();
 		bIsGrabbing = false;
 	}

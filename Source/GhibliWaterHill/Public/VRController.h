@@ -79,7 +79,8 @@ private:
 
 	bool bCanCheckTeleport = false;
 	bool bIsGrabbing = false;
-	class UPrimitiveComponent* GrabbedActor = nullptr;
+	class UPrimitiveComponent* GrabbedComponent = nullptr;
+	float GrabbedComponentInitDistance;
 private:
 	void UpdateSpline(struct FPredictProjectilePathResult Result);
 };

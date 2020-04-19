@@ -152,18 +152,18 @@ void AVRCharacter::MoveRight(float Scale)
 void AVRCharacter::TurnRight(float Scale)
 {
 	FRotator CurrentRotation = VRRoot->GetComponentRotation();
-	if (TurnType == ETurnType::Snap && !HaveSnapped && abs(Scale) > 0.6)
+	if (TurnType == ETurnType::Snap && !HaveSnapped && abs(Scale) > SnapTurnActivationScale)
 	{
-		if (Scale > 0.5) { Scale = 1; }
-		else if (Scale < -0.5) {Scale = -1; }
+		if (Scale > SnapTurnActivationScale) { Scale = 1; }
+		else if (Scale < -SnapTurnActivationScale) {Scale = -1; }
 		VRRoot->SetWorldRotation(CurrentRotation + FRotator(0, AngleToSnap * Scale, 0));
 		HaveSnapped = true;
 	}
-	else if (TurnType == ETurnType::Snap && abs(Scale) < 0.5 && abs(Scale) > 0)
+	else if (TurnType == ETurnType::Snap && abs(Scale) < SnapTurnActivationScale && abs(Scale) > 0)
 	{
 		HaveSnapped = false;
 	}
-	else if (TurnType == ETurnType::Smooth && abs(Scale) > 0.7)
+	else if (TurnType == ETurnType::Smooth && abs(Scale) > SmoothTurnActivationScale)
 	{
 		VRRoot->SetWorldRotation(CurrentRotation + FRotator(0, Scale*SmoothTurnSpeed/50, 0));
 	}
@@ -261,7 +261,7 @@ bool AVRCharacter::bVelocityForTeleport(float Scale)
 				break; 
 			} 
 		}
-		if (Difference > 0.2 && bAllScalesNegative) // Difference needs to be negative as only when pulling back up
+		if (Difference > TeleportActivationScale && bAllScalesNegative) // Difference needs to be negative as only when pulling back up
 		{
 			//UE_LOG(LogTemp, Warning, TEXT("a %f"), ScaleHistory.Last())
 			return true;
@@ -274,10 +274,10 @@ bool AVRCharacter::bVelocityForTeleport(float Scale)
 void AVRCharacter::SendGrabRequest(float Scale)
 {
 	//UE_LOG(LogTemp, Warning, TEXT("Sending request %f"), Scale)
-	if (Scale > 0.25) { LeftController->TryGrab(); }
-	else if (0 < Scale && Scale <= 0.25) { LeftController->ReleaseGrab(); }
-	else if (Scale < -0.25) { RightController->TryGrab(); }
-	else if (-0.25 <= Scale && Scale < 0) { RightController->ReleaseGrab(); }
+	if (Scale > GrabActivationScale) { LeftController->TryGrab(); }
+	else if (0 < Scale && Scale <= GrabActivationScale) { LeftController->ReleaseGrab(); }
+	else if (Scale < -GrabActivationScale) { RightController->TryGrab(); }
+	else if (-GrabActivationScale <= Scale && Scale < 0) { RightController->ReleaseGrab(); }
 	else
 	{
 		LeftController->ReleaseGrab();
