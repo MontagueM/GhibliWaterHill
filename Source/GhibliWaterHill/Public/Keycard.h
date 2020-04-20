@@ -4,16 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Door.generated.h"
+#include "Keycard.generated.h"
 
 UCLASS()
-class GHIBLIWATERHILL_API ADoor : public AActor
+class GHIBLIWATERHILL_API AKeycard : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	ADoor();
+	AKeycard();
 
 protected:
 	// Called when the game starts or when spawned
@@ -23,11 +23,4 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	void LockDoor();
-	void UnlockDoor();
-
-private:
-	UStaticMeshComponent* DoorMesh = nullptr;
-
-	UStaticMeshComponent* SetDoorMesh();
 };
