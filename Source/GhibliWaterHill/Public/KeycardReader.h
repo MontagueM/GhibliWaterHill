@@ -33,11 +33,13 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* KeycardDetectRegion = nullptr;
 
-	UPROPERTY(EditDefaultsOnly)
-	class UMaterialInterface* DoorActivatedMaterial = nullptr;
+	//UPROPERTY(EditDefaultsOnly)
+	//class UMaterialInterface* ActiveMaterialBase = nullptr;
 
 	UPROPERTY(EditDefaultsOnly)
-	class UMaterialInterface* DoorDisabledMaterial = nullptr;
+	class UStaticMeshComponent* ReaderMesh = nullptr;
+
+	class UMaterialInstanceDynamic* ActiveMaterialInstance = nullptr;
 
 private:
 	UFUNCTION()
@@ -48,8 +50,8 @@ private:
 		bool bFromSweep,
 		const FHitResult& SweepResult);
 
-	void LockDoor();
-	void ActivateDoor();
-
+	void SetLocked(bool bLocked);
+	void ChangeMaterial(bool Locked);
+	UStaticMeshComponent* SetReaderMesh();
 	bool bDoorLocked = false;
 };

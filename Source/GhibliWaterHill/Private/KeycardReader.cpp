@@ -4,8 +4,10 @@
 #include "KeycardReader.h"
 #include "Components/BoxComponent.h" 
 #include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMeshActor.h" 
 #include "Keycard.h"
 #include "Door.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 // Sets default values
 AKeycardReader::AKeycardReader()
@@ -20,6 +22,8 @@ AKeycardReader::AKeycardReader()
 	KeycardDetectRegion->RegisterComponent();
 
 	KeycardDetectRegion->OnComponentBeginOverlap.AddDynamic(this, &AKeycardReader::OnOverlapBegin);
+
+
 }
 
 // Called when the game starts or when spawned
@@ -27,7 +31,13 @@ void AKeycardReader::BeginPlay()
 {
 	Super::BeginPlay();
 
-	LockDoor();
+	SetReaderMesh();
+	UE_LOG(LogTemp, Warning, TEXT("Mats count %d"), ReaderMesh->GetNumMaterials());
+	if (!ensure(ReaderMesh->GetMaterial(1))) { return; }
+	ActiveMaterialInstance = UMaterialInstanceDynamic::Create(ReaderMesh->GetMaterial(1), this);
+	ReaderMesh->SetMaterial(1, ActiveMaterialInstance);
+
+	SetLocked(true);
 	UE_LOG(LogTemp, Warning, TEXT("Setup keycard reader"))
 }
 
@@ -35,24 +45,6 @@ void AKeycardReader::BeginPlay()
 void AKeycardReader::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	//if (!bDoorLocked) { return; }
-	//if (!ensure(LinkedKeycard)) { return; }
-	//UE_LOG(LogTemp, Warning, TEXT("A %s %s"), *GetActorLocation().ToString(), *KeycardDetectRegion->GetComponentLocation().ToString())
-	//TArray<UPrimitiveComponent*> OverlappingComponents;
-	//TArray<AActor*> OverlappingActors;
-	//KeycardDetectRegion->GetOverlappingComponents(OverlappingComponents);
-	//KeycardDetectRegion->GetOverlappingActors(OverlappingActors);
-	//UE_LOG(LogTemp, Warning, TEXT("3"))
-	//if (OverlappingComponents.Num() != 0) { UE_LOG(LogTemp, Warning, TEXT("44444")) }
-	//if (OverlappingActors.Num() != 0) { UE_LOG(LogTemp, Warning, TEXT("55555")) }
-	//if (OverlappingComponents.Num() == 0) { return; }
-	//UE_LOG(LogTemp, Warning, TEXT("4444"))
-	//UPrimitiveComponent* CheckComponent = OverlappingComponents[0];
-	//if (CheckComponent == LinkedKeycard->FindComponentByClass<UPrimitiveComponent>())
-	//{ 
-	//	UE_LOG(LogTemp, Warning, TEXT("Touched1"))
-	//	ActivateDoor(); 
-	//}
 }
 
 void AKeycardReader::OnOverlapBegin(UPrimitiveComponent* OverlappedComp,
@@ -68,23 +60,39 @@ void AKeycardReader::OnOverlapBegin(UPrimitiveComponent* OverlappedComp,
 	if ( (OtherActor == LinkedKeycard) && (OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Keycard touched"))
-		ActivateDoor();
+		SetLocked(false);
 	}
 }
 
-void AKeycardReader::LockDoor()
+void AKeycardReader::SetLocked(bool bLocked)
 {
 	if (!ensure(LinkedDoor)) { return; }
-	UE_LOG(LogTemp, Warning, TEXT("Locking door now"))
-	LinkedDoor->SetLockedState(true);
-	bDoorLocked = true;
+	LinkedDoor->SetLockedState(bLocked);
+	bDoorLocked = bLocked;
+	ChangeMaterial(bDoorLocked);
 }
 
-void AKeycardReader::ActivateDoor()
+UStaticMeshComponent* AKeycardReader::SetReaderMesh()
 {
-	if (!ensure(LinkedDoor)) { return; }
-	UE_LOG(LogTemp, Warning, TEXT("Unlocking door now"))
-	LinkedDoor->SetLockedState(false);
-	bDoorLocked = false;
+	UE_LOG(LogTemp, Warning, TEXT("Setting door mesh"))
+	TArray<UStaticMeshComponent*> Meshes;
+	GetComponents<UStaticMeshComponent>(Meshes);
+	for (UStaticMeshComponent* M : Meshes) { if (M->GetName() == TEXT("KeycardReaderMesh")) { ReaderMesh = M; } }
+	if (!ensure(ReaderMesh)) { return nullptr; }
+	return ReaderMesh;
+}
+
+void AKeycardReader::ChangeMaterial(bool bLocked)
+{
+	if (!ensure(ReaderMesh)) { return; }
+	if (!ensure(ActiveMaterialInstance)) { return; }
+	UE_LOG(LogTemp, Warning, TEXT("Change material"))
+	//return;
+	if (bLocked) { 
+		UE_LOG(LogTemp, Warning, TEXT("1"))
+		ActiveMaterialInstance->SetScalarParameterValue(TEXT("DoorLocked"), 1); }
+	else { 
+		UE_LOG(LogTemp, Warning, TEXT("2"))
+		ActiveMaterialInstance->SetScalarParameterValue(TEXT("DoorLocked"), 0); }
 }
 
