@@ -23,11 +23,13 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	void LockDoor();
-	void UnlockDoor();
+	void SetLockedState(bool Locked);
 
 private:
+	UPROPERTY(EditDefaultsOnly)
 	UStaticMeshComponent* DoorMesh = nullptr;
+	UPROPERTY(EditDefaultsOnly)
+	UStaticMeshComponent* LockMesh = nullptr;
 
 	UStaticMeshComponent* SetDoorMesh();
 };

@@ -3,6 +3,7 @@
 
 #include "Door.h"
 #include "Components/StaticMeshComponent.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h" 
 
 // Sets default values
 ADoor::ADoor()
@@ -35,21 +36,15 @@ UStaticMeshComponent* ADoor::SetDoorMesh()
 	return DoorMesh;
 }
 
-void ADoor::LockDoor()
+void ADoor::SetLockedState(bool Locked)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Trying to lock"))
-	if (!ensure(DoorMesh->GetBodyInstance())) { return; }
-	DoorMesh->BodyInstance.bLockXRotation = true;
-	DoorMesh->BodyInstance.bLockYRotation = true;
-	DoorMesh->BodyInstance.bLockZRotation = true;
-	UE_LOG(LogTemp, Warning, TEXT("Locked door"))
-}
-
-void ADoor::UnlockDoor()
-{
-	UE_LOG(LogTemp, Warning, TEXT("Trying to unlock door"))
-	if (!ensure(DoorMesh)) { return; }
-	DoorMesh->BodyInstance.bLockRotation = false;
-	UE_LOG(LogTemp, Warning, TEXT("Unlocked door"))
+	TArray<UPhysicsConstraintComponent*> Constraints;
+	GetComponents<UPhysicsConstraintComponent>(Constraints);
+	for (UPhysicsConstraintComponent* Constraint : Constraints)
+	{
+		if (!ensure(Constraint)) { break; }
+		if (Locked) { Constraint->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Locked, 90); }
+		else { Constraint->SetAngularSwing1Limit(EAngularConstraintMotion::ACM_Free, 90); }
+	}
 }
 

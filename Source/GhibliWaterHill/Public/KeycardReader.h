@@ -25,19 +25,19 @@ public:
 
 private:
 	UPROPERTY(EditAnywhere)
-	class ADoor* LinkedDoor;
+	class ADoor* LinkedDoor = nullptr;
 
 	UPROPERTY(EditAnywhere)
-	class AKeycard* LinkedKeycard;
+	class AKeycard* LinkedKeycard = nullptr;
 
 	UPROPERTY(VisibleAnywhere)
-	class UStaticMeshComponent* KeycardDetectRegion;
+	class UStaticMeshComponent* KeycardDetectRegion = nullptr;
 
 	UPROPERTY(EditDefaultsOnly)
-	class UMaterialInterface* DoorActivatedMaterial;
+	class UMaterialInterface* DoorActivatedMaterial = nullptr;
 
 	UPROPERTY(EditDefaultsOnly)
-	class UMaterialInterface* DoorDisabledMaterial;
+	class UMaterialInterface* DoorDisabledMaterial = nullptr;
 
 private:
 	UFUNCTION()
@@ -50,4 +50,6 @@ private:
 
 	void LockDoor();
 	void ActivateDoor();
+
+	bool bDoorLocked = false;
 };

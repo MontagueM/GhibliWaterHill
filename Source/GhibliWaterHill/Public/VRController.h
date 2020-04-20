@@ -55,7 +55,7 @@ private:
 	class UStaticMeshComponent* MarkerPoint = nullptr;
 	UPROPERTY(VisibleAnywhere)
 	class UPhysicsHandleComponent* PhysicsHandle = nullptr;
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* GrabVolume = nullptr;
 
 	UPROPERTY(EditDefaultsOnly)

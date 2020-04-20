@@ -13,13 +13,13 @@ AKeycardReader::AKeycardReader()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	USceneComponent* SceneComp = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
-	SceneComp->SetupAttachment(GetRootComponent());
+	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
 
 	KeycardDetectRegion = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("KeycardDetectRegion"));
 	KeycardDetectRegion->SetupAttachment(GetRootComponent());
+	KeycardDetectRegion->RegisterComponent();
 
-	//KeycardDetectRegion->OnComponentBeginOverlap.AddDynamic(this, &AKeycardReader::OnOverlapBegin);
+	KeycardDetectRegion->OnComponentBeginOverlap.AddDynamic(this, &AKeycardReader::OnOverlapBegin);
 }
 
 // Called when the game starts or when spawned
@@ -35,20 +35,24 @@ void AKeycardReader::BeginPlay()
 void AKeycardReader::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	UE_LOG(LogTemp, Warning, TEXT("1"))
-	if (!ensure(LinkedKeycard)) { return; }
-	UE_LOG(LogTemp, Warning, TEXT("2"))
-	TArray<UPrimitiveComponent*> OverlappingComponents;
-	KeycardDetectRegion->GetOverlappingComponents(OverlappingComponents);
-	UE_LOG(LogTemp, Warning, TEXT("3"))
-	if (OverlappingComponents.Num() == 0) { return; }
-	UE_LOG(LogTemp, Warning, TEXT("4444"))
-	UPrimitiveComponent* CheckComponent = OverlappingComponents[0];
-	if (CheckComponent == LinkedKeycard->FindComponentByClass<UPrimitiveComponent>())
-	{ 
-		UE_LOG(LogTemp, Warning, TEXT("Touched1"))
-		ActivateDoor(); 
-	}
+	//if (!bDoorLocked) { return; }
+	//if (!ensure(LinkedKeycard)) { return; }
+	//UE_LOG(LogTemp, Warning, TEXT("A %s %s"), *GetActorLocation().ToString(), *KeycardDetectRegion->GetComponentLocation().ToString())
+	//TArray<UPrimitiveComponent*> OverlappingComponents;
+	//TArray<AActor*> OverlappingActors;
+	//KeycardDetectRegion->GetOverlappingComponents(OverlappingComponents);
+	//KeycardDetectRegion->GetOverlappingActors(OverlappingActors);
+	//UE_LOG(LogTemp, Warning, TEXT("3"))
+	//if (OverlappingComponents.Num() != 0) { UE_LOG(LogTemp, Warning, TEXT("44444")) }
+	//if (OverlappingActors.Num() != 0) { UE_LOG(LogTemp, Warning, TEXT("55555")) }
+	//if (OverlappingComponents.Num() == 0) { return; }
+	//UE_LOG(LogTemp, Warning, TEXT("4444"))
+	//UPrimitiveComponent* CheckComponent = OverlappingComponents[0];
+	//if (CheckComponent == LinkedKeycard->FindComponentByClass<UPrimitiveComponent>())
+	//{ 
+	//	UE_LOG(LogTemp, Warning, TEXT("Touched1"))
+	//	ActivateDoor(); 
+	//}
 }
 
 void AKeycardReader::OnOverlapBegin(UPrimitiveComponent* OverlappedComp,
@@ -60,7 +64,8 @@ void AKeycardReader::OnOverlapBegin(UPrimitiveComponent* OverlappedComp,
 {
 	UE_LOG(LogTemp, Warning, TEXT("Touched"))
 	if (!ensure(LinkedKeycard)) { return; }
-	if ( (OtherActor == LinkedKeycard->GetParentActor()) && (OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr))
+	if (!bDoorLocked) { return; }
+	if ( (OtherActor == LinkedKeycard) && (OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Keycard touched"))
 		ActivateDoor();
@@ -71,13 +76,15 @@ void AKeycardReader::LockDoor()
 {
 	if (!ensure(LinkedDoor)) { return; }
 	UE_LOG(LogTemp, Warning, TEXT("Locking door now"))
-	LinkedDoor->LockDoor();
+	LinkedDoor->SetLockedState(true);
+	bDoorLocked = true;
 }
 
 void AKeycardReader::ActivateDoor()
 {
 	if (!ensure(LinkedDoor)) { return; }
 	UE_LOG(LogTemp, Warning, TEXT("Unlocking door now"))
-	LinkedDoor->UnlockDoor();
+	LinkedDoor->SetLockedState(false);
+	bDoorLocked = false;
 }
 
