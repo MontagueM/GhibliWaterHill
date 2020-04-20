@@ -120,8 +120,8 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Left_Thumbstick_Left, -1);
 			UpdateAxisMapping(InputSettings, TEXT("TurnRight"), EKeys::OculusTouch_Right_Thumbstick_X, 1);
 		}
-		UpdateAxisMapping(InputSettings, TEXT("Grab"), EKeys::OculusTouch_Left_Grip_Axis, 1);
-		UpdateAxisMapping(InputSettings, TEXT("Grab"), EKeys::OculusTouch_Right_Grip_Axis, -1);
+		UpdateAxisMapping(InputSettings, TEXT("GrabLeft"), EKeys::OculusTouch_Left_Grip_Axis, 1);
+		UpdateAxisMapping(InputSettings, TEXT("GrabRight"), EKeys::OculusTouch_Right_Grip_Axis, 1);
 	}
 	PlayerInputComponent->BindAxis(TEXT("Forward"), this, &AVRCharacter::MoveForward);
 	PlayerInputComponent->BindAxis(TEXT("Right"), this, &AVRCharacter::MoveRight);
@@ -129,7 +129,8 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAxis(TEXT("Teleport"), this, &AVRCharacter::TryTeleport);
 	PlayerInputComponent->BindAction(TEXT("CheckTeleport"), IE_Pressed, this, &AVRCharacter::StartTeleportationCheck);
 	PlayerInputComponent->BindAction(TEXT("CheckTeleport"), IE_Released, this, &AVRCharacter::StopTeleportationCheck);
-	PlayerInputComponent->BindAxis(TEXT("Grab"), this, &AVRCharacter::SendGrabRequest);
+	PlayerInputComponent->BindAxis(TEXT("GrabLeft"), this, &AVRCharacter::SendGrabRequestLeft);
+	PlayerInputComponent->BindAxis(TEXT("GrabRight"), this, &AVRCharacter::SendGrabRequestRight);
 }
 
 void AVRCharacter::MoveForward(float Scale)
@@ -173,7 +174,6 @@ void AVRCharacter::TryTeleport(float Scale)
 {
 	if (GetTeleportController()->bAllowCharacterTeleport && bVelocityForTeleport(Scale) && !bCurrentlyTeleporting)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Teleporting"))
 		bCurrentlyTeleporting = true;
 		// Fade out
 		PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
@@ -217,7 +217,6 @@ void AVRCharacter::UpdateActionMapping(UInputSettings* InputSettings, FName Acti
 	if (OldKey.IsValid()) { InputSettings->RemoveActionMapping(FInputActionKeyMapping(ActionName, OldKey)); }
 	if (!ensure(NewKey.IsValid())) { return; }
 	InputSettings->AddActionMapping(FInputActionKeyMapping(ActionName, NewKey));
-	UE_LOG(LogTemp, Warning, TEXT("wa %s"), *NewKey.GetFName().ToString())
 	InputSettings->SaveKeyMappings();
 }
 
@@ -225,7 +224,6 @@ void AVRCharacter::UpdateAxisMapping(UInputSettings* InputSettings, FName AxisNa
 {
 	if (!ensure(Key.IsValid())) { return; }
 	InputSettings->AddAxisMapping(FInputAxisKeyMapping(AxisName, Key, Scale));
-	UE_LOG(LogTemp, Warning, TEXT("axis %s"), *Key.GetFName().ToString())
 	InputSettings->SaveKeyMappings();
 }
 
@@ -263,7 +261,6 @@ bool AVRCharacter::bVelocityForTeleport(float Scale)
 		}
 		if (Difference > TeleportActivationScale && bAllScalesNegative) // Difference needs to be negative as only when pulling back up
 		{
-			//UE_LOG(LogTemp, Warning, TEXT("a %f"), ScaleHistory.Last())
 			return true;
 		}
 	}
@@ -271,16 +268,14 @@ bool AVRCharacter::bVelocityForTeleport(float Scale)
 }
 
 
-void AVRCharacter::SendGrabRequest(float Scale)
+void AVRCharacter::SendGrabRequestLeft(float Scale)
 {
-	//UE_LOG(LogTemp, Warning, TEXT("Sending request %f"), Scale)
 	if (Scale > GrabActivationScale) { LeftController->TryGrab(); }
-	else if (0 < Scale && Scale <= GrabActivationScale) { LeftController->ReleaseGrab(); }
-	else if (Scale < -GrabActivationScale) { RightController->TryGrab(); }
-	else if (-GrabActivationScale <= Scale && Scale < 0) { RightController->ReleaseGrab(); }
-	else
-	{
-		LeftController->ReleaseGrab();
-		RightController->ReleaseGrab();
-	}
+	else { LeftController->ReleaseGrab(); }
+}
+
+void AVRCharacter::SendGrabRequestRight(float Scale)
+{
+	if (Scale > GrabActivationScale) { RightController->TryGrab(); }
+	else { RightController->ReleaseGrab(); }
 }

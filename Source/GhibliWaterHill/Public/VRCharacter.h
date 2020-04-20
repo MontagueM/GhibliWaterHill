@@ -83,7 +83,8 @@ private:
 	void MoveRight(float Scale);
 	void TurnRight(float Scale);
 	void TryTeleport(float Scale);
-	void SendGrabRequest(float Scale);
+	void SendGrabRequestLeft(float Scale);
+	void SendGrabRequestRight(float Scale);
 	void EndTeleport();
 	void FadeOutFromTeleport();
 	void UpdateActionMapping(class UInputSettings* InputSettings, FName ActionName, FKey OldKey, FKey NewKey);

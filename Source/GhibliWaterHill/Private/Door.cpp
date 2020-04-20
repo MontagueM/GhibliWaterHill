@@ -29,10 +29,8 @@ void ADoor::Tick(float DeltaTime)
 
 UStaticMeshComponent* ADoor::SetDoorMesh()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Setting door mesh"))
 	DoorMesh = FindComponentByClass<UStaticMeshComponent>();
 	if (!ensure(DoorMesh)) { return nullptr; }
-	UE_LOG(LogTemp, Warning, TEXT("Door %s"), *DoorMesh->GetName())
 	return DoorMesh;
 }
 

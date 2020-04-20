@@ -32,13 +32,11 @@ void AKeycardReader::BeginPlay()
 	Super::BeginPlay();
 
 	SetReaderMesh();
-	UE_LOG(LogTemp, Warning, TEXT("Mats count %d"), ReaderMesh->GetNumMaterials());
 	if (!ensure(ReaderMesh->GetMaterial(1))) { return; }
 	ActiveMaterialInstance = UMaterialInstanceDynamic::Create(ReaderMesh->GetMaterial(1), this);
 	ReaderMesh->SetMaterial(1, ActiveMaterialInstance);
 
 	SetLocked(true);
-	UE_LOG(LogTemp, Warning, TEXT("Setup keycard reader"))
 }
 
 // Called every frame
@@ -54,12 +52,10 @@ void AKeycardReader::OnOverlapBegin(UPrimitiveComponent* OverlappedComp,
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Touched"))
 	if (!ensure(LinkedKeycard)) { return; }
 	if (!bDoorLocked) { return; }
 	if ( (OtherActor == LinkedKeycard) && (OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Keycard touched"))
 		SetLocked(false);
 	}
 }
@@ -74,7 +70,6 @@ void AKeycardReader::SetLocked(bool bLocked)
 
 UStaticMeshComponent* AKeycardReader::SetReaderMesh()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Setting door mesh"))
 	TArray<UStaticMeshComponent*> Meshes;
 	GetComponents<UStaticMeshComponent>(Meshes);
 	for (UStaticMeshComponent* M : Meshes) { if (M->GetName() == TEXT("KeycardReaderMesh")) { ReaderMesh = M; } }
@@ -86,13 +81,7 @@ void AKeycardReader::ChangeMaterial(bool bLocked)
 {
 	if (!ensure(ReaderMesh)) { return; }
 	if (!ensure(ActiveMaterialInstance)) { return; }
-	UE_LOG(LogTemp, Warning, TEXT("Change material"))
-	//return;
-	if (bLocked) { 
-		UE_LOG(LogTemp, Warning, TEXT("1"))
-		ActiveMaterialInstance->SetScalarParameterValue(TEXT("DoorLocked"), 1); }
-	else { 
-		UE_LOG(LogTemp, Warning, TEXT("2"))
-		ActiveMaterialInstance->SetScalarParameterValue(TEXT("DoorLocked"), 0); }
+	if (bLocked) { ActiveMaterialInstance->SetScalarParameterValue(TEXT("DoorLocked"), 1); }
+	else { ActiveMaterialInstance->SetScalarParameterValue(TEXT("DoorLocked"), 0); }
 }
 

@@ -37,6 +37,9 @@ AVRController::AVRController()
 
 	GrabVolume = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GrabVolume"));
 	GrabVolume->SetupAttachment(GetRootComponent());
+
+	ControllerMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ControllerMesh"));
+	ControllerMesh->SetupAttachment(GetRootComponent());
 }
 
 // Called when the game starts or when spawned
@@ -59,7 +62,6 @@ void AVRController::Tick(float DeltaTime)
 	{
 		// move object we're holding 
 		FVector MoveVector = GetActorForwardVector() + GetActorRotation().Vector() * GrabbedComponentInitDistance;
-		//UE_LOG(LogTemp, Warning, TEXT("MoveVector %s"), *MoveVector.ToString())
 		PhysicsHandle->SetTargetLocation(GetActorLocation() + MoveVector);
 	}
 		
@@ -68,6 +70,8 @@ void AVRController::Tick(float DeltaTime)
 void AVRController::SetHand(EControllerHand SetHand) {
 	Hand = SetHand;
 	MotionController->SetTrackingSource(Hand);
+	if (Hand == EControllerHand::Left) { ControllerMesh->SetStaticMesh(LeftControllerMesh); }
+	else if (Hand == EControllerHand::Right) { ControllerMesh->SetStaticMesh(RightControllerMesh); }
 }
 
 EControllerHand AVRController::GetHand() { return Hand; }
@@ -193,6 +197,7 @@ void AVRController::TryGrab()
 	If any objects, get closest to controller
 	Use PhysicsHandle or socket
 	*/
+	UE_LOG(LogTemp, Warning, TEXT("Trying to grab"))
 	if (bIsGrabbing) { return; }
 
 	TArray<UPrimitiveComponent*> OverlappingComponents;
@@ -200,6 +205,7 @@ void AVRController::TryGrab()
 	if (OverlappingComponents.Num() == 0) { return; }
 	bIsGrabbing = true;
 	GrabbedComponent = OverlappingComponents[0];
+	UE_LOG(LogTemp, Warning, TEXT("grab"))
 	PhysicsHandle->GrabComponentAtLocationWithRotation(GrabbedComponent, NAME_None, GrabbedComponent->GetComponentLocation(), GetOwner()->GetActorRotation());
 	GrabbedComponentInitDistance = FVector::Distance(GetActorLocation(), GrabbedComponent->GetComponentLocation());
 }

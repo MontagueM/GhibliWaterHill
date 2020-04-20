@@ -57,6 +57,13 @@ private:
 	class UPhysicsHandleComponent* PhysicsHandle = nullptr;
 	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* GrabVolume = nullptr;
+	UPROPERTY(VisibleAnywhere)
+	class UStaticMeshComponent* ControllerMesh = nullptr;
+
+	UPROPERTY(EditDefaultsOnly)
+	UStaticMesh* LeftControllerMesh = nullptr;
+	UPROPERTY(EditDefaultsOnly)
+	UStaticMesh* RightControllerMesh = nullptr;
 
 	UPROPERTY(EditDefaultsOnly)
 	float TeleportProjectileSpeed = 800;
