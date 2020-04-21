@@ -64,7 +64,7 @@ void AVRController::Tick(float DeltaTime)
 		FVector MoveVector = GetActorForwardVector() + GetActorRotation().Vector() * GrabbedComponentInitDistance;
 		FRotator MoveRotator = GetActorRotation() - ControllerRotationOnGrab;
 		PhysicsHandle->SetTargetLocation(GetActorLocation() + MoveVector);
-		//PhysicsHandle->SetTargetRotation(GrabbedComponent->GetComponentRotation() + MoveRotator);
+		PhysicsHandle->SetTargetRotation(GetActorRotation());
 	}
 		
 }
