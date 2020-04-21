@@ -62,7 +62,9 @@ void AVRController::Tick(float DeltaTime)
 	{
 		// move object we're holding 
 		FVector MoveVector = GetActorForwardVector() + GetActorRotation().Vector() * GrabbedComponentInitDistance;
+		FRotator MoveRotator = GetActorRotation() - ControllerRotationOnGrab;
 		PhysicsHandle->SetTargetLocation(GetActorLocation() + MoveVector);
+		//PhysicsHandle->SetTargetRotation(GrabbedComponent->GetComponentRotation() + MoveRotator);
 	}
 		
 }
@@ -152,7 +154,18 @@ bool AVRController::UpdateTeleportationCheck()
 	bool bTeleportDestinationExists = FindTeleportDestination(TeleportLocation);
 	if (bTeleportDestinationExists && bCanHandTeleport() && bCanCheckTeleport)
 	{
-		DestinationMarker->SetWorldLocation(TeleportLocation);
+		FCollisionQueryParams TraceParams(FName(TEXT("Trace")), false, GetOwner());
+		/// Ray-cast out to reach distance
+		FHitResult Hit;
+		GetWorld()->LineTraceSingleByObjectType(OUT Hit,
+			TeleportLocation,
+			TeleportLocation + FVector(0, 0, -200),
+			FCollisionObjectQueryParams(ECollisionChannel::ECC_WorldStatic),
+			TraceParams
+		);
+		if (Hit.bBlockingHit) { DestinationMarker->SetWorldLocation(Hit.Location); }
+		else { DestinationMarker->SetWorldLocation(TeleportLocation); }
+
 		DestinationMarker->SetWorldRotation(FRotator::ZeroRotator);
 		DestinationMarker->SetVisibility(true);
 		return true;
@@ -208,6 +221,7 @@ void AVRController::TryGrab()
 	UE_LOG(LogTemp, Warning, TEXT("grab"))
 	PhysicsHandle->GrabComponentAtLocationWithRotation(GrabbedComponent, NAME_None, GrabbedComponent->GetComponentLocation(), GetOwner()->GetActorRotation());
 	GrabbedComponentInitDistance = FVector::Distance(GetActorLocation(), GrabbedComponent->GetComponentLocation());
+	ControllerRotationOnGrab = GetActorRotation();
 }
 
 void AVRController::ReleaseGrab()

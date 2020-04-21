@@ -88,6 +88,7 @@ private:
 	bool bIsGrabbing = false;
 	class UPrimitiveComponent* GrabbedComponent = nullptr;
 	float GrabbedComponentInitDistance;
+	FRotator ControllerRotationOnGrab;
 private:
 	void UpdateSpline(struct FPredictProjectilePathResult Result);
 };
