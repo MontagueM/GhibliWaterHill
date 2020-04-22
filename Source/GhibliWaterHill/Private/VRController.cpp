@@ -10,6 +10,7 @@
 #include "Components/SplineMeshComponent.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "Engine/StaticMeshActor.h" 
+#include "Kismet/KismetMathLibrary.h" 
 
 #include "DrawDebugHelpers.h" 
 
@@ -33,6 +34,9 @@ AVRController::AVRController()
 
 	TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("TeleportPath"));
 	TeleportPath->SetupAttachment(GetRootComponent());
+
+	FlickPath = CreateDefaultSubobject<USplineComponent>(TEXT("FlickPath"));
+	FlickPath->SetupAttachment(GetRootComponent());
 
 	PhysicsHandle = CreateDefaultSubobject<UPhysicsHandleComponent>(TEXT("PhysicsHandle"));
 
@@ -59,33 +63,18 @@ void AVRController::Tick(float DeltaTime)
 		bAllowCharacterTeleport = UpdateTeleportationCheck();
 	}
 
-	if (bIsGrabbing || bIsFlicking)
+	if (bIsGrabbing)
 	{
 		// move object we're holding 
-		FVector MoveVector;
-		if (ensure(FlickedComponent))
-		{
-			if (bIsFlicking && FVector::Distance(FlickedComponent->GetComponentLocation(), GetActorLocation()) - GrabbedComponentInitDistance > 100)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Special one %f"), FVector::Distance(FlickedComponent->GetComponentLocation(), GetActorLocation()))
-				MoveVector = GetActorForwardVector() * FVector::Distance(FlickedComponent->GetComponentLocation(), GetActorLocation());
-			}
-			else {
-				MoveVector = GetActorForwardVector() + GetActorRotation().Vector() * GrabbedComponentInitDistance;
-			}
-		}
-		else
-		{
-			MoveVector = GetActorForwardVector() + GetActorRotation().Vector() * GrabbedComponentInitDistance;
-		}
-		
+		FVector MoveVector = GetActorForwardVector() + GetActorRotation().Vector() * GrabbedComponentInitDistance;
 		FRotator MoveRotator = GetActorRotation() - ControllerRotationOnGrab;
 		PhysicsHandle->SetTargetLocation(GetActorLocation() + MoveVector);
 		PhysicsHandle->SetTargetRotation(GetActorRotation());
 	}
 	if (Hand == EControllerHand::Left)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Rot %s"), *GetActorRotation().ToString())
+		//UE_LOG(LogTemp, Warning, TEXT("Rot %s"), *GetActorRotation().ToString())
+		//UE_LOG(LogTemp, Warning, TEXT("Up vel %s"), *ControllerMesh->GetPhysicsAngularVelocityInDegrees().ToString())
 		FlickHighlight();
 	}
 }
@@ -93,8 +82,18 @@ void AVRController::Tick(float DeltaTime)
 void AVRController::SetHand(EControllerHand SetHand) {
 	Hand = SetHand;
 	MotionController->SetTrackingSource(Hand);
-	if (Hand == EControllerHand::Left) { ControllerMesh->SetStaticMesh(LeftControllerMesh); }
-	else if (Hand == EControllerHand::Right) { ControllerMesh->SetStaticMesh(RightControllerMesh); }
+	if (Hand == EControllerHand::Left) 
+	{ 
+		ControllerMesh->SetStaticMesh(LeftControllerMesh);
+		GrabVolume->SetWorldScale3D(FVector(0.22, 0.22, 0.38)/2); // TODO remove magic numbers
+		GrabVolume->SetRelativeLocation(FVector(7.261321, 5.595972, 0.0));
+	}
+	else if (Hand == EControllerHand::Right) 
+	{ 
+		ControllerMesh->SetStaticMesh(RightControllerMesh);
+		GrabVolume->SetWorldScale3D(FVector(0.22, 0.22, 0.38)/2);
+		GrabVolume->SetRelativeLocation(FVector(7.261321, -8.009752, 0.0));
+	}
 }
 
 EControllerHand AVRController::GetHand() { return Hand; }
@@ -107,18 +106,15 @@ bool AVRController::FindTeleportDestination(FVector& Location)
 	FVector Direction = GetActorForwardVector().RotateAngleAxis(15, GetActorRightVector());
 
 	FPredictProjectilePathResult Result;
-	FPredictProjectilePathParams Params(TeleportProjectileRadius,
+	bool bHit = ProjectilePathingUpdate(Result,
+		TeleportProjectileRadius,
 		StartLocation,
-		Direction* TeleportProjectileSpeed,
+		Direction,
+		TeleportProjectileSpeed,
 		TeleportSimulationTime,
-		ECollisionChannel::ECC_Visibility,
-		this);
-	//Params.DrawDebugType = EDrawDebugTrace::ForOneFrame;
-	Params.bTraceComplex = true; // to stop it not showing teleport places due to weird collisions in the map
-	Params.SimFrequency = TeleportSimulationFrequency; // dictates smoothness of arc
-	bool bHit = UGameplayStatics::PredictProjectilePath(this, Params, Result);
-	/// Draw teleport curve, annoying its here though could move it
-	UpdateSpline(Result);
+		ECollisionChannel::ECC_Visibility);
+	UpdateSpline(Result, TeleportPath);
+
 	/// We want to make sure we are also allowed to teleport there
 	UNavigationSystemV1* UNavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
 	if (!ensure(UNavSystem)) { return false; }
@@ -129,43 +125,64 @@ bool AVRController::FindTeleportDestination(FVector& Location)
 	return bHit && bValidDestination;
 }
 
-void AVRController::UpdateSpline(FPredictProjectilePathResult Result)
+bool AVRController::ProjectilePathingUpdate(FPredictProjectilePathResult& Result, float ProjectileRadius, FVector StartLocation, FVector Direction, float ProjectileSpeed, float SimulationTime, ECollisionChannel CollisionChannel)
+{
+	FPredictProjectilePathParams Params(ProjectileRadius,
+		StartLocation,
+		Direction * ProjectileSpeed,
+		SimulationTime,
+		CollisionChannel,
+		this);
+	//Params.DrawDebugType = EDrawDebugTrace::ForOneFrame;
+	Params.bTraceComplex = true; // to stop it not showing teleport places due to weird collisions in the map
+	Params.SimFrequency = TeleportSimulationFrequency; // dictates smoothness of arc
+	bool bHit = UGameplayStatics::PredictProjectilePath(this, Params, Result);
+	/// Draw teleport curve, annoying its here though could move it
+	return bHit;
+}
+
+void AVRController::UpdateSpline(FPredictProjectilePathResult Result, USplineComponent* PathToUpdate)
 {
 	// to hide left over spline components
-	for (USplineMeshComponent* u : TeleportMeshObjects) // TODO refactor
+	for (USplineMeshComponent* u : MeshObjects)
 	{
 		u->SetVisibility(false);
 	}
-	TeleportPath->ClearSplinePoints(true);
+	PathToUpdate->ClearSplinePoints(true);
+
+
 	for (int i = 0; i < Result.PathData.Num(); i++)
 	{
-		if (Result.PathData.Num() > TeleportMeshObjects.Num()) // only add if we need to add another one
+		if (Result.PathData.Num() > MeshObjects.Num()) // only add if we need to add another one
 		{
 
 			SplineMesh = NewObject<USplineMeshComponent>(this);
 			SplineMesh->SetStaticMesh(TeleportArcMesh);
 			SplineMesh->SetMaterial(0, TeleportArcMaterial);
 			SplineMesh->RegisterComponent();
-			TeleportMeshObjects.Add(SplineMesh);
+			MeshObjects.Add(SplineMesh);
 		}
-		TeleportPath->AddSplinePoint(Result.PathData[i].Location, ESplineCoordinateSpace::Local, ESplinePointType::Curve);
+		PathToUpdate->AddSplinePoint(Result.PathData[i].Location, ESplineCoordinateSpace::Local, ESplinePointType::Curve);
 
 		/// Orienting the meshes
 		if (i > 0)
 		{
-			SplineMesh = TeleportMeshObjects[i - 1];
+			SplineMesh = MeshObjects[i - 1];
 			FVector LocationStart, TangentStart, LocationEnd, TangentEnd;
-			TeleportPath->GetLocalLocationAndTangentAtSplinePoint(i - 1, LocationStart, TangentStart);
-			TeleportPath->GetLocalLocationAndTangentAtSplinePoint(i, LocationEnd, TangentEnd);
+			PathToUpdate->GetLocalLocationAndTangentAtSplinePoint(i - 1, LocationStart, TangentStart);
+			PathToUpdate->GetLocalLocationAndTangentAtSplinePoint(i, LocationEnd, TangentEnd);
 			SplineMesh->SetStartAndEnd(LocationStart, TangentStart, LocationEnd, TangentEnd);
-			TeleportMeshObjects[i - 1]->SetVisibility(true);
-			if (i == Result.PathData.Num() - 1)
+			MeshObjects[i - 1]->SetVisibility(true);
+			if (bCanCheckTeleport)
 			{
-				MarkerPoint->SetWorldLocation(LocationEnd);
+				if (i == Result.PathData.Num() - 1)
+				{
+					MarkerPoint->SetWorldLocation(LocationEnd);
+				}
 			}
 		}
 	}
-	MarkerPoint->SetVisibility(true);
+	if (bCanCheckTeleport) { MarkerPoint->SetVisibility(true); }
 }
 
 bool AVRController::UpdateTeleportationCheck()
@@ -217,7 +234,7 @@ void AVRController::SetCanCheckTeleport(bool bCheck)
 	bCanCheckTeleport = bCheck;
 	DestinationMarker->SetVisibility(false);
 	MarkerPoint->SetVisibility(false);
-	for (USplineMeshComponent* u : TeleportMeshObjects)
+	for (USplineMeshComponent* u : MeshObjects)
 	{
 		u->SetVisibility(false);
 	}
@@ -226,7 +243,7 @@ void AVRController::SetCanCheckTeleport(bool bCheck)
 
 void AVRController::DetectGrabStyle()
 {
-	if (ComponentToFlick || FlickedComponent) { TryFlick(); }
+	if (ComponentToFlick && !FlickedComponent) { TryFlick(); }
 	else { TryGrab(); }
 }
 
@@ -259,48 +276,33 @@ void AVRController::FlickHighlight()
 	if (bGoodFlickRotation())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Trying to find object to flick"))
-		FCollisionQueryParams TraceParams(FName(TEXT("Trace")), false, GetOwner());
 		/// Ray-cast out to reach distance
-		FHitResult Hit; // .RotateAngleAxis(-90, FVector(0, 0, 0))
-		FVector HandOrientation = GetActorUpVector().RotateAngleAxis(120, GetActorRightVector());
-		float Reach = 1000;
+		FVector StartLocation = GetActorLocation() + GetActorForwardVector() * 5;
+		FVector Direction = GetActorUpVector().RotateAngleAxis(120, GetActorRightVector());
+		FPredictProjectilePathResult FlickResult;
+		bool bHit = ProjectilePathingUpdate(FlickResult,
+			TeleportProjectileRadius,
+			StartLocation,
+			Direction,
+			TeleportProjectileSpeed,
+			TeleportSimulationTime,
+			ECollisionChannel::ECC_PhysicsBody);
 
-		DrawDebugLine(GetWorld(),
-			GetActorLocation(),
-			GetActorLocation() + HandOrientation * Reach,
-			FColor::Black);
-
-		//TraceParams.bDebugQuery = true;
-		//DrawDebugLine(GetWorld(),
-		//	GetActorLocation(),
-		//	GetActorLocation() + GetActorForwardVector() * Reach,
-		//	FColor::Red);
-
-		//TraceParams.bDebugQuery = true;
-		//DrawDebugLine(GetWorld(),
-		//	GetActorLocation(),
-		//	GetActorLocation() + GetActorRightVector() * Reach,
-		//	FColor::Green);
-
-		//TraceParams.bDebugQuery = true;
-		//DrawDebugLine(GetWorld(),
-		//	GetActorLocation(),
-		//	GetActorLocation() + GetActorUpVector() * Reach,
-		//	FColor::Blue);
-
-		GetWorld()->LineTraceSingleByObjectType(OUT Hit,
-			GetActorLocation(),
-			GetActorLocation() + HandOrientation * Reach,
-			FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody),
-			TraceParams
-		);
-		if (Hit.bBlockingHit)
+		UPrimitiveComponent* Component = FlickResult.HitResult.GetComponent();
+		UpdateSpline(FlickResult, FlickPath);
+		if (bHit && Component != ControllerMesh && Component->IsSimulatingPhysics())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Found object to flick %s"), *Hit.GetComponent()->GetName())
+			UE_LOG(LogTemp, Warning, TEXT("Found object to flick %s"), *FlickResult.HitResult.GetActor()->GetName())
+			ComponentToFlick = Component;
 			// highlight component
-			ComponentToFlick = Hit.GetComponent();
+			//if (bCanShowGrabSpline) {  // we're ignoring this for now to make it easier to use
+			//UpdateSpline(FlickResult, FlickPath);
 		}
-		else { ComponentToFlick = nullptr; }
+		else 
+		{ 
+			ComponentToFlick = nullptr;
+			FlickPath->ClearSplinePoints(true);
+		}
 	}
 }
 
@@ -308,22 +310,44 @@ void AVRController::TryFlick()
 {
 	/*
 	Given highlighted component
-	Grab the component with physics handle
-	Place at location which (x^2+y^2+z^2)^0.5 but scale not location + a bit
+
 	*/
 	UE_LOG(LogTemp, Warning, TEXT("Trying to flick"))
-	if (ComponentToFlick && !bIsGrabbing && !bIsFlicking)
+	if (ComponentToFlick && !bIsGrabbing)
 	{
-		FVector Scale = ComponentToFlick->RelativeScale3D;
-		FVector Location = GetActorLocation() + GetActorForwardVector() * Scale.Size();
-		Location = GrabVolume->GetComponentLocation() + GetActorForwardVector() * 100;
-		UE_LOG(LogTemp, Warning, TEXT("GrabbingGrabbingGrabbingGrabbingg to %s"), *Location.ToString())
-		//ComponentToFlick->SetWorldLocation(Location);
-		PhysicsHandle->GrabComponentAtLocationWithRotation(ComponentToFlick, NAME_None, Location, GetOwner()->GetActorRotation());
-		GrabbedComponentInitDistance = FVector::Distance(GetActorLocation(), Location);
-		bIsFlicking = true;
-		FlickedComponent = ComponentToFlick;
+		if (bUpVelocityForFlick())
+		{
+			bCanShowGrabSpline = false;
+			UE_LOG(LogTemp, Warning, TEXT("WOOOOOOOOOOOOOOOOOOOOO"))
+			FlickedComponent = ComponentToFlick; // TODO figure this stuff out, need to smoothly move from 0 to 1
+			StartComponentFling.Broadcast(FlickPath, FlickedComponent);
+			//float FlingTime = 100;
+			//float TestTime = GetWorld()->GetTimeSeconds();
+			//for (float Alpha = 1; Alpha >= 0; Alpha -= GetWorld()->GetDeltaSeconds() / FlingTime)
+			//{
+			//	float Distance = UKismetMathLibrary::Lerp(0, FlickPath->GetSplineLength(), Alpha);
+			//	FVector NewLocation = FlickPath->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::Local);
+			//	FRotator NewRotation = FlickPath->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::Local);
+			//	UE_LOG(LogTemp, Warning, TEXT("Alpha %f Location %s"), Alpha, *FlickedComponent->GetComponentLocation().ToString())
+			//	FlickedComponent->SetWorldLocationAndRotation(NewLocation, NewRotation);
+			//}
+			//UE_LOG(LogTemp, Warning, TEXT("Time %f"), GetWorld()->GetTimeSeconds()-TestTime)
+			//FlickedComponent = nullptr;
+			//ComponentToFlick = nullptr;
+		}
+		else
+		{ 
+			FlickedComponent = nullptr;
+			bCanShowGrabSpline = true;
+			UE_LOG(LogTemp, Warning, TEXT("We have a component highlighted, ready to pull!"))
+		}
 	}
+}
+
+bool AVRController::bUpVelocityForFlick()
+{
+	FVector AngVelocity = ControllerMesh->GetPhysicsAngularVelocityInDegrees();
+	return (abs(AngVelocity.X) > 100 && abs(AngVelocity.Y) > 100);
 }
 
 void AVRController::TryGrab()
@@ -334,7 +358,7 @@ void AVRController::TryGrab()
 	Use PhysicsHandle or socket
 	*/
 	UE_LOG(LogTemp, Warning, TEXT("Trying to grab"))
-	if (bIsGrabbing || bIsFlicking) { return; }
+	if (bIsGrabbing) { return; }
 
 	TArray<UPrimitiveComponent*> OverlappingComponents;
 	GrabVolume->GetOverlappingComponents(OverlappingComponents);

@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "VRController.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FFlingEvent, USplineComponent*, FlickPath, UPrimitiveComponent*, FlickedComponent);
+
 UCLASS()
 class GHIBLIWATERHILL_API AVRController : public AActor
 {
@@ -53,6 +55,8 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	class USplineComponent* TeleportPath = nullptr;
 	UPROPERTY(VisibleAnywhere)
+	class USplineComponent* FlickPath = nullptr;
+	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* MarkerPoint = nullptr;
 	UPROPERTY(VisibleAnywhere)
 	class UPhysicsHandleComponent* PhysicsHandle = nullptr;
@@ -81,25 +85,31 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	class UMaterialInterface* TeleportArcMaterial;
 	UPROPERTY() // need this for proper garbage collection
-	TArray<class USplineMeshComponent*> TeleportMeshObjects;
+	TArray<class USplineMeshComponent*> MeshObjects;
 	UPROPERTY(EditDefaultsOnly)
 	FVector DestinationMarkerScale = FVector(0.7, 0.7, 0.5);
 
 
 	bool bCanCheckTeleport = false;
 	bool bIsGrabbing = false;
-	bool bIsFlicking = false;
 	class UPrimitiveComponent* GrabbedComponent = nullptr;
 	float GrabbedComponentInitDistance;
 	FRotator ControllerRotationOnGrab;
 private:
-	void UpdateSpline(struct FPredictProjectilePathResult Result);
+	void UpdateSpline(struct FPredictProjectilePathResult Result, USplineComponent* PathToUpdate);
+	bool ProjectilePathingUpdate(FPredictProjectilePathResult& Result, float ProjectileRadius, FVector StartLocation, FVector Direction, float ProjectileSpeed, float SimulationTime, ECollisionChannel CollisionChannel);
 
 private:
 	void FlickHighlight();
 	bool bGoodFlickRotation();
 	void TryFlick();
+	bool bUpVelocityForFlick();
 	// TODO add a function for release flick with a reset for FlickedComponent
 	UPrimitiveComponent* ComponentToFlick = nullptr;
 	UPrimitiveComponent* FlickedComponent = nullptr;
+	bool bCanShowGrabSpline = false;
+
+public:
+	UPROPERTY(BlueprintAssignable)
+	FFlingEvent StartComponentFling;
 };
