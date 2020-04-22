@@ -9,8 +9,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/SplineMeshComponent.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
-
 #include "Engine/StaticMeshActor.h" 
+
+#include "DrawDebugHelpers.h" 
 
 using namespace std;
 
@@ -52,7 +53,7 @@ void AVRController::BeginPlay()
 void AVRController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	
 	if (bCanHandTeleport() && bCanCheckTeleport) 
 	{ 
 		bAllowCharacterTeleport = UpdateTeleportationCheck();
@@ -61,12 +62,20 @@ void AVRController::Tick(float DeltaTime)
 	if (bIsGrabbing)
 	{
 		// move object we're holding 
+		//if (bIsFlicking && (FVector::Distance(ComponentToFlick->GetComponentLocation(), GetActorLocation()) - GrabbedComponentInitDistance) > 1)
+		//{
+		//	FVector MoveVector = GetActorForwardVector() * 2;
+		//}
 		FVector MoveVector = GetActorForwardVector() + GetActorRotation().Vector() * GrabbedComponentInitDistance;
 		FRotator MoveRotator = GetActorRotation() - ControllerRotationOnGrab;
 		PhysicsHandle->SetTargetLocation(GetActorLocation() + MoveVector);
 		PhysicsHandle->SetTargetRotation(GetActorRotation());
 	}
-		
+	if (Hand == EControllerHand::Left)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Rot %s"), *GetActorRotation().ToString())
+		FlickHighlight();
+	}
 }
 
 void AVRController::SetHand(EControllerHand SetHand) {
@@ -203,6 +212,107 @@ void AVRController::SetCanCheckTeleport(bool bCheck)
 	TeleportPath->ClearSplinePoints(true);
 }
 
+void AVRController::DetectGrabStyle()
+{
+	if (ComponentToFlick) { TryFlick(); }
+	else { TryGrab(); }
+}
+
+bool AVRController::bGoodFlickRotation()
+{
+	FRotator Rotation = GetActorRotation();
+	// TODO we can deal with the magic numbers here at least for now
+	if (Hand == EControllerHand::Left) // since we need to change it/flip it based on the hand
+	{
+		if (( Rotation.Pitch < 15 && Rotation.Pitch > -45 ) && (Rotation.Roll < 120 && Rotation.Roll > 50))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Trying to highlight"))
+				return true;
+		}
+	}
+	return false;
+}
+
+void AVRController::FlickHighlight()
+{
+	/*
+	PER TICK
+	If the hand controlled is rotated correctly (depending on hand)
+		Get the actor
+		Highlight the actor in the world or something like it
+	If it isn't rotated correctly
+		Set to nullptr
+	*/
+
+	if (bGoodFlickRotation())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Trying to find object to flick"))
+		FCollisionQueryParams TraceParams(FName(TEXT("Trace")), false, GetOwner());
+		/// Ray-cast out to reach distance
+		FHitResult Hit; // .RotateAngleAxis(-90, FVector(0, 0, 0))
+		FVector HandOrientation = GetActorUpVector().RotateAngleAxis(120, GetActorRightVector());
+		float Reach = 1000;
+		TraceParams.bDebugQuery = true;
+		DrawDebugLine(GetWorld(),
+			GetActorLocation(),
+			GetActorLocation() + HandOrientation * Reach,
+			FColor::Black);
+
+		//TraceParams.bDebugQuery = true;
+		//DrawDebugLine(GetWorld(),
+		//	GetActorLocation(),
+		//	GetActorLocation() + GetActorForwardVector() * Reach,
+		//	FColor::Red);
+
+		//TraceParams.bDebugQuery = true;
+		//DrawDebugLine(GetWorld(),
+		//	GetActorLocation(),
+		//	GetActorLocation() + GetActorRightVector() * Reach,
+		//	FColor::Green);
+
+		//TraceParams.bDebugQuery = true;
+		//DrawDebugLine(GetWorld(),
+		//	GetActorLocation(),
+		//	GetActorLocation() + GetActorUpVector() * Reach,
+		//	FColor::Blue);
+
+		GetWorld()->LineTraceSingleByObjectType(OUT Hit,
+			GetActorLocation(),
+			GetActorLocation() + HandOrientation * Reach,
+			FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody),
+			TraceParams
+		);
+		if (Hit.bBlockingHit)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Found object to flick %s"), *Hit.GetComponent()->GetName())
+			// highlight component
+			ComponentToFlick = Hit.GetComponent();
+		}
+		else { ComponentToFlick = nullptr; }
+	}
+}
+
+void AVRController::TryFlick()
+{
+	/*
+	Given highlighted component
+	Grab the component with physics handle
+	Place at location which (x^2+y^2+z^2)^0.5 but scale not location + a bit
+	*/
+	UE_LOG(LogTemp, Warning, TEXT("Trying to flick"))
+	if (ComponentToFlick && !bIsGrabbing && !bIsFlicking)
+	{
+		FVector Scale = ComponentToFlick->RelativeScale3D;
+		FVector Location = GetActorLocation() + GetActorForwardVector() * Scale.Size();
+		Location = GrabVolume->GetComponentLocation() + GetActorForwardVector() * 100;
+		UE_LOG(LogTemp, Warning, TEXT("GrabbingGrabbingGrabbingGrabbing to %s"), *Location.ToString())
+		ComponentToFlick->SetWorldLocation(Location);
+		PhysicsHandle->GrabComponentAtLocationWithRotation(ComponentToFlick, NAME_None, Location, GetOwner()->GetActorRotation());
+		GrabbedComponentInitDistance = FVector::Distance(GetActorLocation(), Location);
+		bIsFlicking = true;
+	}
+}
+
 void AVRController::TryGrab()
 {
 	/*
@@ -211,7 +321,7 @@ void AVRController::TryGrab()
 	Use PhysicsHandle or socket
 	*/
 	UE_LOG(LogTemp, Warning, TEXT("Trying to grab"))
-	if (bIsGrabbing) { return; }
+	if (bIsGrabbing || bIsFlicking) { return; }
 
 	TArray<UPrimitiveComponent*> OverlappingComponents;
 	GrabVolume->GetOverlappingComponents(OverlappingComponents);

@@ -27,7 +27,7 @@ void ABridge::Tick(float DeltaTime)
 
 	if (!ensure(LinkedLever)) { return; }
 
-	UE_LOG(LogTemp, Warning, TEXT("A %f"), LinkedLever->GetLeverRotationPercentage())
+	//UE_LOG(LogTemp, Warning, TEXT("A %f"), LinkedLever->GetLeverRotationPercentage())
 	SetActorRotation(InitRotation + FRotator(90, 0, 0) * LinkedLever->GetLeverRotationPercentage());
 }
 

@@ -49,6 +49,8 @@ private:
 	class USceneComponent* VRRoot = nullptr;
 	class AVRController* LeftController = nullptr;
 	class AVRController* RightController = nullptr;
+	UPROPERTY(VisibleAnywhere)
+	class UPostProcessComponent* PostProcess;
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AVRController> HandControllerClass;
 	UPROPERTY(EditDefaultsOnly)
@@ -77,6 +79,9 @@ private:
 	bool bCurrentlyTeleporting = false;
 	class APlayerCameraManager* PlayerCameraManager = nullptr;
 	bool HaveSnapped = false;
+
+	UPROPERTY(EditDefaultsOnly)
+	class UMaterialInterface* HighlightMaterialBase = nullptr;;
 
 private:
 	void MoveForward(float Scale);

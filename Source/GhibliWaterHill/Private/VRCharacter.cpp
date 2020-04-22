@@ -14,6 +14,8 @@
 #include "Runtime/Engine/Classes/GameFramework/InputSettings.h"
 #include "InputCoreTypes.h"
 #include "Runtime/CoreUObject/Public/UObject/UObjectGlobals.h"
+#include "Components/PostProcessComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 // Sets default values
 AVRCharacter::AVRCharacter()
@@ -26,6 +28,9 @@ AVRCharacter::AVRCharacter()
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VRRoot);
+
+	PostProcess = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcess"));
+	PostProcess->SetupAttachment(GetRootComponent());
 }
 
 // Called when the game starts or when spawned
@@ -49,6 +54,11 @@ void AVRCharacter::BeginPlay()
 	RightController->SetHand(EControllerHand::Right);
 
 	SetupPlayerInputComponent(FindComponentByClass<UInputComponent>());
+
+	if (!ensure(HighlightMaterialBase)) { return; };
+	if (!ensure(PostProcess)) { return; };
+	UMaterialInstanceDynamic* HighlightInstance = UMaterialInstanceDynamic::Create(HighlightMaterialBase, NULL);
+	//PostProcess->AddOrUpdateBlendable(HighlightInstance);
 }
 
 // Called every frame
@@ -270,12 +280,12 @@ bool AVRCharacter::bVelocityForTeleport(float Scale)
 
 void AVRCharacter::SendGrabRequestLeft(float Scale)
 {
-	if (Scale > GrabActivationScale) { LeftController->TryGrab(); }
+	if (Scale > GrabActivationScale) { LeftController->DetectGrabStyle(); }
 	else { LeftController->ReleaseGrab(); }
 }
 
 void AVRCharacter::SendGrabRequestRight(float Scale)
 {
-	if (Scale > GrabActivationScale) { RightController->TryGrab(); }
+	if (Scale > GrabActivationScale) { RightController->DetectGrabStyle(); }
 	else { RightController->ReleaseGrab(); }
 }

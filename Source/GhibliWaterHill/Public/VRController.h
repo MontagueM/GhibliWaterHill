@@ -31,6 +31,7 @@ public:
 	void SetCanCheckTeleport(bool bCheck);
 	void TryGrab();
 	void ReleaseGrab();
+	void DetectGrabStyle();
 
 	bool bAllowCharacterTeleport = false;
 
@@ -84,11 +85,20 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	FVector DestinationMarkerScale = FVector(0.7, 0.7, 0.5);
 
+
 	bool bCanCheckTeleport = false;
 	bool bIsGrabbing = false;
+	bool bIsFlicking = false;
 	class UPrimitiveComponent* GrabbedComponent = nullptr;
 	float GrabbedComponentInitDistance;
 	FRotator ControllerRotationOnGrab;
 private:
 	void UpdateSpline(struct FPredictProjectilePathResult Result);
+
+private:
+	void FlickHighlight();
+	bool bGoodFlickRotation();
+	void TryFlick();
+	// TODO add a function for release flick
+	UPrimitiveComponent* ComponentToFlick = nullptr;
 };

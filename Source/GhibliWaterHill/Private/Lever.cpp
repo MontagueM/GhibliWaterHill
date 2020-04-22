@@ -24,7 +24,7 @@ void ALever::BeginPlay()
 void ALever::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	UE_LOG(LogTemp, Warning, TEXT("A %s %s"), *InitialRodRotation.ToString(), *RodMesh->GetComponentRotation().ToString())
+	//UE_LOG(LogTemp, Warning, TEXT("A %s %s"), *InitialRodRotation.ToString(), *RodMesh->GetComponentRotation().ToString())
 }
 
 UStaticMeshComponent* ALever::SetLeverMesh()
@@ -42,7 +42,7 @@ float ALever::GetLeverRotationPercentage()
 	if (!ensure(RodMesh)) { return 0; }
 	float RodRotation = RodMesh->GetComponentRotation().Pitch - InitialRodRotation.Pitch;
 	float Scale = RodRotation / RodRotationMaxScale;
-	UE_LOG(LogTemp, Warning, TEXT("Percentage %f"), RodMesh->GetComponentRotation().Pitch)
+	//UE_LOG(LogTemp, Warning, TEXT("Percentage %f"), RodMesh->GetComponentRotation().Pitch)
 	if (abs(Scale) < 0.05) { Scale = 0; }
 	return FMath::Clamp(abs(Scale), 0.f, 1.f);
 }
