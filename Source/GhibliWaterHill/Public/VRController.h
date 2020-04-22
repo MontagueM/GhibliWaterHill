@@ -99,6 +99,7 @@ private:
 	void FlickHighlight();
 	bool bGoodFlickRotation();
 	void TryFlick();
-	// TODO add a function for release flick
+	// TODO add a function for release flick with a reset for FlickedComponent
 	UPrimitiveComponent* ComponentToFlick = nullptr;
+	UPrimitiveComponent* FlickedComponent = nullptr;
 };

@@ -59,14 +59,26 @@ void AVRController::Tick(float DeltaTime)
 		bAllowCharacterTeleport = UpdateTeleportationCheck();
 	}
 
-	if (bIsGrabbing)
+	if (bIsGrabbing || bIsFlicking)
 	{
 		// move object we're holding 
-		//if (bIsFlicking && (FVector::Distance(ComponentToFlick->GetComponentLocation(), GetActorLocation()) - GrabbedComponentInitDistance) > 1)
-		//{
-		//	FVector MoveVector = GetActorForwardVector() * 2;
-		//}
-		FVector MoveVector = GetActorForwardVector() + GetActorRotation().Vector() * GrabbedComponentInitDistance;
+		FVector MoveVector;
+		if (ensure(FlickedComponent))
+		{
+			if (bIsFlicking && FVector::Distance(FlickedComponent->GetComponentLocation(), GetActorLocation()) - GrabbedComponentInitDistance > 100)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Special one %f"), FVector::Distance(FlickedComponent->GetComponentLocation(), GetActorLocation()))
+				MoveVector = GetActorForwardVector() * FVector::Distance(FlickedComponent->GetComponentLocation(), GetActorLocation());
+			}
+			else {
+				MoveVector = GetActorForwardVector() + GetActorRotation().Vector() * GrabbedComponentInitDistance;
+			}
+		}
+		else
+		{
+			MoveVector = GetActorForwardVector() + GetActorRotation().Vector() * GrabbedComponentInitDistance;
+		}
+		
 		FRotator MoveRotator = GetActorRotation() - ControllerRotationOnGrab;
 		PhysicsHandle->SetTargetLocation(GetActorLocation() + MoveVector);
 		PhysicsHandle->SetTargetRotation(GetActorRotation());
@@ -214,7 +226,7 @@ void AVRController::SetCanCheckTeleport(bool bCheck)
 
 void AVRController::DetectGrabStyle()
 {
-	if (ComponentToFlick) { TryFlick(); }
+	if (ComponentToFlick || FlickedComponent) { TryFlick(); }
 	else { TryGrab(); }
 }
 
@@ -252,7 +264,7 @@ void AVRController::FlickHighlight()
 		FHitResult Hit; // .RotateAngleAxis(-90, FVector(0, 0, 0))
 		FVector HandOrientation = GetActorUpVector().RotateAngleAxis(120, GetActorRightVector());
 		float Reach = 1000;
-		TraceParams.bDebugQuery = true;
+
 		DrawDebugLine(GetWorld(),
 			GetActorLocation(),
 			GetActorLocation() + HandOrientation * Reach,
@@ -305,11 +317,12 @@ void AVRController::TryFlick()
 		FVector Scale = ComponentToFlick->RelativeScale3D;
 		FVector Location = GetActorLocation() + GetActorForwardVector() * Scale.Size();
 		Location = GrabVolume->GetComponentLocation() + GetActorForwardVector() * 100;
-		UE_LOG(LogTemp, Warning, TEXT("GrabbingGrabbingGrabbingGrabbing to %s"), *Location.ToString())
-		ComponentToFlick->SetWorldLocation(Location);
+		UE_LOG(LogTemp, Warning, TEXT("GrabbingGrabbingGrabbingGrabbingg to %s"), *Location.ToString())
+		//ComponentToFlick->SetWorldLocation(Location);
 		PhysicsHandle->GrabComponentAtLocationWithRotation(ComponentToFlick, NAME_None, Location, GetOwner()->GetActorRotation());
 		GrabbedComponentInitDistance = FVector::Distance(GetActorLocation(), Location);
 		bIsFlicking = true;
+		FlickedComponent = ComponentToFlick;
 	}
 }
 
