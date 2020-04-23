@@ -251,7 +251,7 @@ void AVRController::SetCanCheckTeleport(bool bCheck)
 void AVRController::DetectGrabStyle()
 {
 	if (RegisteredFlickComponent && !ComponentCurrentlyFlicking) { TryFlick(); }
-	else { TryGrab(); }
+	else if (!bHoldingFlick) { TryGrab(); }
 }
 
 void AVRController::DetectReleaseStyle()
@@ -291,7 +291,7 @@ void AVRController::FlickHighlight()
 		UE_LOG(LogTemp, Warning, TEXT("Trying to find object to flick"))
 		/// Ray-cast out to reach distance
 		FVector StartLocation = GetActorLocation();
-		FVector Direction = GetActorUpVector().RotateAngleAxis(140, GetActorRightVector());
+		FVector Direction = GetActorUpVector().RotateAngleAxis(140, GetActorRightVector()).RotateAngleAxis(-30, GetActorUpVector()).RotateAngleAxis(-30, GetActorForwardVector());
 		FPredictProjectilePathResult FlickResult;
 		bool bHit = ProjectilePathingUpdate(FlickResult,
 			TeleportProjectileRadius,
@@ -300,6 +300,19 @@ void AVRController::FlickHighlight()
 			TeleportProjectileSpeed*2,
 			TeleportSimulationTime*2,
 			ECollisionChannel::ECC_PhysicsBody);
+
+		//DrawDebugLine(GetWorld(),
+		//GetActorLocation(),
+		//GetActorLocation() + GetActorForwardVector() * 1000,
+		//FColor::Red);
+		//DrawDebugLine(GetWorld(),
+		//GetActorLocation(),
+		//GetActorLocation() + GetActorUpVector() * 1000,
+		//FColor::Blue);
+		//DrawDebugLine(GetWorld(),
+		//GetActorLocation(),
+		//GetActorLocation() + GetActorRightVector() * 1000,
+		//FColor::Yellow);
 
 		UPrimitiveComponent* Component = FlickResult.HitResult.GetComponent();
 		UpdateSpline(FlickResult, FlickPath);
@@ -315,6 +328,7 @@ void AVRController::FlickHighlight()
 		{
 			//UE_LOG(LogTemp, Warning, TEXT("Found object to flick %s"), *FlickResult.HitResult.GetActor()->GetName())
 			RegisteredFlickComponent = Component;
+			RegisteredFlickComponent->SetRenderCustomDepth(true);
 			RegisteredSplineComponent = FlickPath;
 			RegisteredControllerLocation = GetActorLocation();
 			// highlight component
@@ -372,6 +386,7 @@ void AVRController::ReleaseFlick()
 
 void AVRController::ResetRegisteredComponents()
 {
+	if (RegisteredFlickComponent) { RegisteredFlickComponent->SetRenderCustomDepth(false); }
 	RegisteredFlickComponent = nullptr;
 	RegisteredSplineComponent = nullptr;
 	RegisteredControllerLocation = FVector::ZeroVector;

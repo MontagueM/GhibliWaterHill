@@ -58,7 +58,7 @@ void AVRCharacter::BeginPlay()
 	if (!ensure(HighlightMaterialBase)) { return; };
 	if (!ensure(PostProcess)) { return; };
 	UMaterialInstanceDynamic* HighlightInstance = UMaterialInstanceDynamic::Create(HighlightMaterialBase, NULL);
-	//PostProcess->AddOrUpdateBlendable(HighlightInstance);
+	PostProcess->AddOrUpdateBlendable(HighlightInstance);
 }
 
 // Called every frame
