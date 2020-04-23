@@ -73,8 +73,15 @@ void AVRController::Tick(float DeltaTime)
 	}
 	if (Hand == EControllerHand::Left)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("Rot %s"), *GetActorRotation().ToString())
-		//UE_LOG(LogTemp, Warning, TEXT("Up vel %s"), *ControllerMesh->GetPhysicsAngularVelocityInDegrees().ToString())
+		//if (RegisteredSplineComponent)
+		//{
+		//	UE_LOG(LogTemp, Warning, TEXT("Spline %d"), RegisteredSplineComponent->GetNumberOfSplinePoints())
+		//}
+		//else
+		//{
+		//	UE_LOG(LogTemp, Warning, TEXT("Spline not available"))
+		//}
+		//UE_LOG(LogTemp, Warning, TEXT("Up vel %s"), *ControllerMesh->GetComponentVelocity().ToString())
 		FlickHighlight();
 	}
 }
@@ -243,8 +250,14 @@ void AVRController::SetCanCheckTeleport(bool bCheck)
 
 void AVRController::DetectGrabStyle()
 {
-	if (ComponentToFlick && !FlickedComponent) { TryFlick(); }
+	if (RegisteredFlickComponent && !ComponentCurrentlyFlicking) { TryFlick(); }
 	else { TryGrab(); }
+}
+
+void AVRController::DetectReleaseStyle()
+{
+	if (ComponentCurrentlyFlicking) { ReleaseFlick(); }
+	else { ReleaseGrab(); }
 }
 
 bool AVRController::bGoodFlickRotation()
@@ -256,7 +269,7 @@ bool AVRController::bGoodFlickRotation()
 		if (( Rotation.Pitch < 15 && Rotation.Pitch > -45 ) && (Rotation.Roll < 120 && Rotation.Roll > 50))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Trying to highlight"))
-				return true;
+			return true;
 		}
 	}
 	return false;
@@ -273,81 +286,95 @@ void AVRController::FlickHighlight()
 		Set to nullptr
 	*/
 
-	if (bGoodFlickRotation())
+	if (bGoodFlickRotation() && !bHoldingFlick)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Trying to find object to flick"))
 		/// Ray-cast out to reach distance
-		FVector StartLocation = GetActorLocation() + GetActorForwardVector() * 5;
-		FVector Direction = GetActorUpVector().RotateAngleAxis(120, GetActorRightVector());
+		FVector StartLocation = GetActorLocation();
+		FVector Direction = GetActorUpVector().RotateAngleAxis(140, GetActorRightVector());
 		FPredictProjectilePathResult FlickResult;
 		bool bHit = ProjectilePathingUpdate(FlickResult,
 			TeleportProjectileRadius,
 			StartLocation,
 			Direction,
-			TeleportProjectileSpeed,
-			TeleportSimulationTime,
+			TeleportProjectileSpeed*2,
+			TeleportSimulationTime*2,
 			ECollisionChannel::ECC_PhysicsBody);
 
 		UPrimitiveComponent* Component = FlickResult.HitResult.GetComponent();
 		UpdateSpline(FlickResult, FlickPath);
+		bool bNew = false;
+		if (RegisteredFlickComponent != Component ||
+			(FVector::Distance(RegisteredControllerLocation, GetActorLocation()) > 1 && RegisteredControllerLocation != FVector::ZeroVector))
+		{
+			//UE_LOG(LogTemp, Warning, TEXT("Resetting! 2"))
+			ResetRegisteredComponents();
+			bNew = true;
+		}
 		if (bHit && Component != ControllerMesh && Component->IsSimulatingPhysics())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Found object to flick %s"), *FlickResult.HitResult.GetActor()->GetName())
-			ComponentToFlick = Component;
+			//UE_LOG(LogTemp, Warning, TEXT("Found object to flick %s"), *FlickResult.HitResult.GetActor()->GetName())
+			RegisteredFlickComponent = Component;
+			RegisteredSplineComponent = FlickPath;
+			RegisteredControllerLocation = GetActorLocation();
 			// highlight component
-			//if (bCanShowGrabSpline) {  // we're ignoring this for now to make it easier to use
-			//UpdateSpline(FlickResult, FlickPath);
+
 		}
 		else 
 		{ 
-			ComponentToFlick = nullptr;
 			FlickPath->ClearSplinePoints(true);
+			//UE_LOG(LogTemp, Warning, TEXT("Resetting! 3"))
 		}
 	}
 }
 
 void AVRController::TryFlick()
-{
+{ 
 	/*
 	Given highlighted component
 
 	*/
-	UE_LOG(LogTemp, Warning, TEXT("Trying to flick"))
-	if (ComponentToFlick && !bIsGrabbing)
+	//UE_LOG(LogTemp, Warning, TEXT("Trying to flick"))
+	bHoldingFlick = true;
+	if (RegisteredFlickComponent && !bIsGrabbing)
 	{
+		//UE_LOG(LogTemp, Warning, TEXT("1"))
 		if (bUpVelocityForFlick())
 		{
 			bCanShowGrabSpline = false;
-			UE_LOG(LogTemp, Warning, TEXT("WOOOOOOOOOOOOOOOOOOOOO"))
-			FlickedComponent = ComponentToFlick; // TODO figure this stuff out, need to smoothly move from 0 to 1
-			StartComponentFling.Broadcast(FlickPath, FlickedComponent);
-			//float FlingTime = 100;
-			//float TestTime = GetWorld()->GetTimeSeconds();
-			//for (float Alpha = 1; Alpha >= 0; Alpha -= GetWorld()->GetDeltaSeconds() / FlingTime)
-			//{
-			//	float Distance = UKismetMathLibrary::Lerp(0, FlickPath->GetSplineLength(), Alpha);
-			//	FVector NewLocation = FlickPath->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::Local);
-			//	FRotator NewRotation = FlickPath->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::Local);
-			//	UE_LOG(LogTemp, Warning, TEXT("Alpha %f Location %s"), Alpha, *FlickedComponent->GetComponentLocation().ToString())
-			//	FlickedComponent->SetWorldLocationAndRotation(NewLocation, NewRotation);
-			//}
-			//UE_LOG(LogTemp, Warning, TEXT("Time %f"), GetWorld()->GetTimeSeconds()-TestTime)
-			//FlickedComponent = nullptr;
-			//ComponentToFlick = nullptr;
+			//UE_LOG(LogTemp, Warning, TEXT("WOOOOOOOOOOOOOOOOOOOOO"))
+			ComponentCurrentlyFlicking = RegisteredFlickComponent; // TODO figure this stuff out, need to smoothly move from 0 to 1
+			RegisteredFlickComponent = nullptr;
+			StartComponentFling.Broadcast(RegisteredSplineComponent, ComponentCurrentlyFlicking);
 		}
 		else
 		{ 
-			FlickedComponent = nullptr;
+			ComponentCurrentlyFlicking = nullptr;
 			bCanShowGrabSpline = true;
-			UE_LOG(LogTemp, Warning, TEXT("We have a component highlighted, ready to pull!"))
+			//UE_LOG(LogTemp, Warning, TEXT("We have a component highlighted, ready to pull!"))
 		}
 	}
 }
 
 bool AVRController::bUpVelocityForFlick()
 {
-	FVector AngVelocity = ControllerMesh->GetPhysicsAngularVelocityInDegrees();
-	return (abs(AngVelocity.X) > 100 && abs(AngVelocity.Y) > 100);
+	FVector Velocity = ControllerMesh->GetPhysicsAngularVelocityInDegrees();
+	return (abs(Velocity.X) > 50 && abs(Velocity.Y) > 50);
+}
+
+void AVRController::ReleaseFlick()
+{
+	ComponentCurrentlyFlicking = nullptr;
+	bHoldingFlick = false;
+	//UE_LOG(LogTemp, Warning, TEXT("Resetting! 1"))
+	ResetRegisteredComponents();
+}
+
+void AVRController::ResetRegisteredComponents()
+{
+	RegisteredFlickComponent = nullptr;
+	RegisteredSplineComponent = nullptr;
+	RegisteredControllerLocation = FVector::ZeroVector;
 }
 
 void AVRController::TryGrab()

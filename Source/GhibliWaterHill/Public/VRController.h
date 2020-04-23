@@ -104,12 +104,19 @@ private:
 	bool bGoodFlickRotation();
 	void TryFlick();
 	bool bUpVelocityForFlick();
+	void ReleaseFlick();
+	void ResetRegisteredComponents();
 	// TODO add a function for release flick with a reset for FlickedComponent
-	UPrimitiveComponent* ComponentToFlick = nullptr;
-	UPrimitiveComponent* FlickedComponent = nullptr;
+	UPrimitiveComponent* RegisteredFlickComponent = nullptr;
+	USplineComponent* RegisteredSplineComponent = nullptr;
+	FVector RegisteredControllerLocation = FVector::ZeroVector;
+	UPrimitiveComponent* ComponentCurrentlyFlicking = nullptr;
 	bool bCanShowGrabSpline = false;
+	bool bHoldingFlick = false;
 
 public:
 	UPROPERTY(BlueprintAssignable)
 	FFlingEvent StartComponentFling;
+
+	void DetectReleaseStyle();
 };

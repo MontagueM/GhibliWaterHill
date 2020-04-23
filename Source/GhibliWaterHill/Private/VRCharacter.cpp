@@ -281,11 +281,11 @@ bool AVRCharacter::bVelocityForTeleport(float Scale)
 void AVRCharacter::SendGrabRequestLeft(float Scale)
 {
 	if (Scale > GrabActivationScale) { LeftController->DetectGrabStyle(); }
-	else { LeftController->ReleaseGrab(); }
+	else { LeftController->DetectReleaseStyle(); }
 }
 
 void AVRCharacter::SendGrabRequestRight(float Scale)
 {
 	if (Scale > GrabActivationScale) { RightController->DetectGrabStyle(); }
-	else { RightController->ReleaseGrab(); }
+	else { RightController->DetectReleaseStyle(); }
 }
