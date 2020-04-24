@@ -68,6 +68,8 @@ private:
 	class USceneComponent* FlickRoot = nullptr;
 	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* FlickVolume = nullptr;
+	UPROPERTY(VisibleAnywhere)
+	class UStaticMeshComponent* DebugMesh = nullptr;
 
 	UPROPERTY(EditDefaultsOnly)
 	UStaticMesh* LeftControllerMesh = nullptr;

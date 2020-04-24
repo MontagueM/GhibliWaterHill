@@ -51,6 +51,9 @@ AVRController::AVRController()
 
 	FlickVolume = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FlickVolume"));
 	FlickVolume->SetupAttachment(FlickRoot);
+
+	DebugMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DebugMesh"));
+	DebugMesh->SetupAttachment(GetRootComponent());
 }
 
 // Called when the game starts or when spawned
@@ -394,10 +397,10 @@ void AVRController::FlickHighlight()
 			if (ensure(Comp) && Comp->IsSimulatingPhysics())
 			{
 				Distances.Add(FVector::Distance(Comp->GetComponentLocation(), FlickVolume->GetComponentLocation()));
-				UE_LOG(LogTemp, Warning, TEXT("Comp %s"), *Comp->GetName())
+				//UE_LOG(LogTemp, Warning, TEXT("Comp %s"), *Comp->GetName())
 			}
 		}
-		UE_LOG(LogTemp, Warning, TEXT("3"))
+		//UE_LOG(LogTemp, Warning, TEXT("3"))
 		int32 MinIndex = 0;
 		float MinValue = 0;
 		UPrimitiveComponent* Component = nullptr;
@@ -407,26 +410,26 @@ void AVRController::FlickHighlight()
 			Component = PotentialFlickComponents[MinIndex];
 		}
 		else { Component = FlickResult.HitResult.GetComponent(); }
-		UpdateSpline(PathPointDataToFVector(FlickResult.PathData), FlickPath);
-		UpdateSpline(PathPointDataToFVector(FlickResult.PathData), FlickPath);
+		//UpdateSpline(PathPointDataToFVector(FlickResult.PathData), FlickPath);
+		//UpdateSpline(PathPointDataToFVector(FlickResult.PathData), FlickPath);
 
 		//UPrimitiveComponent* Component = FlickResult.HitResult.GetComponent();
 
-		if (bHit && Component->IsSimulatingPhysics())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("1 %s"), *Component->GetName())
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("0"))
-		}
+		//if (bHit && Component->IsSimulatingPhysics())
+		//{
+		//	UE_LOG(LogTemp, Warning, TEXT("1 %s"), *Component->GetName())
+		//}
+		//else
+		//{
+		//	UE_LOG(LogTemp, Warning, TEXT("0"))
+		//}
 
 
 		bool bNew = false;
 		if (RegisteredFlickComponent != Component ||
 			(FVector::Distance(RegisteredControllerLocation, GetActorLocation()) > 1 && RegisteredControllerLocation != FVector::ZeroVector))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Resetting! 2"))
+			//UE_LOG(LogTemp, Warning, TEXT("Resetting! 2"))
 			ResetRegisteredComponents();
 			bNew = true;
 		}
@@ -436,21 +439,37 @@ void AVRController::FlickHighlight()
 			UE_LOG(LogTemp, Warning, TEXT("Found object to flick %s"), *Component->GetName())
 			RegisteredFlickComponent = Component;
 			RegisteredFlickComponent->SetRenderCustomDepth(true);
-			RegisteredSplineComponent = FlickPath;
-			UE_LOG(LogTemp, Warning, TEXT("1"))
+			//UE_LOG(LogTemp, Warning, TEXT("1"))
 			RegisteredControllerLocation = GetActorLocation();
 
-			TArray<FVector> SplinePoints;
-			FVector SplinePoint1 = GetActorLocation();
-			FVector SplinePoint3 = RegisteredFlickComponent->GetComponentLocation();
-			FVector SplineDirection = SplinePoint3 - SplinePoint1;
-			FVector SplinePoint2 = GetActorLocation() + Direction * FVector::Distance(SplinePoint1, SplinePoint3) / 2;
-			UpdateSpline(SplinePoints, FlickPath);
+			//TArray<FVector> SplinePoints;
+			//FVector SplinePoint1 = GetActorLocation();
+			//FVector SplinePoint3 = RegisteredFlickComponent->GetComponentLocation();
+			//FVector SplinePoint2 = GetActorLocation() + Direction * FVector::Distance(SplinePoint1, SplinePoint3) / 2;
+			//SplinePoints.Add(SplinePoint1);
+			//SplinePoints.Add(SplinePoint2);
+			//SplinePoints.Add(SplinePoint3);
+			//UE_LOG(LogTemp, Warning, TEXT("Spline loc 1 %s"), *SplinePoint1.ToString())
+			//UE_LOG(LogTemp, Warning, TEXT("Spline loc 2 %s"), *SplinePoint2.ToString())
+			//UE_LOG(LogTemp, Warning, TEXT("Spline loc 3 %s"), *SplinePoint3.ToString())
+
+			FVector Vec1 = GetActorLocation() - GetActorRightVector() * 100;
+			FVector Vec2 = RegisteredFlickComponent->GetComponentLocation() - GetActorRightVector() * 100;
+			DebugMesh->SetWorldLocation(Vec1);
+			FVector ControlPoints[4] = { GetActorLocation(),
+			Vec1,
+			Vec2,
+			RegisteredFlickComponent->GetComponentLocation() };
+			int32 NumPoints = 100;
+			TArray<FVector> OutPoints;
+			FVector::EvaluateBezier(ControlPoints, NumPoints, OutPoints);
+			UpdateSpline(OutPoints, FlickPath);
+			RegisteredSplineComponent = FlickPath;
 		}
 		else 
 		{ 
 			ClearSplinePoints(FlickPath, true);
-			UE_LOG(LogTemp, Warning, TEXT("Resetting! 3"))
+			//UE_LOG(LogTemp, Warning, TEXT("Resetting! 3"))
 		}
 	}
 }
@@ -506,7 +525,7 @@ void AVRController::ResetRegisteredComponents()
 	if (RegisteredFlickComponent) { RegisteredFlickComponent->SetRenderCustomDepth(false); }
 	ComponentCurrentlyFlicking = nullptr;
 	RegisteredFlickComponent = nullptr;
-	UE_LOG(LogTemp, Warning, TEXT("0"))
+	//UE_LOG(LogTemp, Warning, TEXT("0"))
 	RegisteredSplineComponent = nullptr;
 	RegisteredControllerLocation = FVector::ZeroVector;
 }
@@ -518,7 +537,7 @@ void AVRController::ClearSplinePoints(USplineComponent* PathToUpdate, bool Clear
 		u->SetVisibility(false);
 	}
 	if (Clear) { PathToUpdate->ClearSplinePoints(true); }
-	UE_LOG(LogTemp, Error, TEXT("ClearSplinePoints"))
+	//UE_LOG(LogTemp, Error, TEXT("ClearSplinePoints"))
 }
 
 void AVRController::TryGrab()
