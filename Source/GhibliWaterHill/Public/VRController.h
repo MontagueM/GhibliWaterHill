@@ -64,6 +64,8 @@ private:
 	class UStaticMeshComponent* GrabVolume = nullptr;
 	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* ControllerMesh = nullptr;
+	UPROPERTY(VisibleAnywhere)
+	class UStaticMeshComponent* FlickVolume = nullptr;
 
 	UPROPERTY(EditDefaultsOnly)
 	UStaticMesh* LeftControllerMesh = nullptr;
@@ -101,17 +103,17 @@ private:
 
 private:
 	void FlickHighlight();
-	bool bGoodFlickRotation();
 	void TryFlick();
 	bool bUpVelocityForFlick();
 	void ReleaseFlick();
+	UFUNCTION(BlueprintCallable)
 	void ResetRegisteredComponents();
+	void ClearSplinePoints(USplineComponent* PathToUpdate, bool Clear);
 	// TODO add a function for release flick with a reset for FlickedComponent
 	UPrimitiveComponent* RegisteredFlickComponent = nullptr;
 	USplineComponent* RegisteredSplineComponent = nullptr;
 	FVector RegisteredControllerLocation = FVector::ZeroVector;
 	UPrimitiveComponent* ComponentCurrentlyFlicking = nullptr;
-	bool bCanShowGrabSpline = false;
 	bool bHoldingFlick = false;
 
 public:
@@ -119,4 +121,5 @@ public:
 	FFlingEvent StartComponentFling;
 
 	void DetectReleaseStyle();
+	bool bGoodFlickRotation();
 };

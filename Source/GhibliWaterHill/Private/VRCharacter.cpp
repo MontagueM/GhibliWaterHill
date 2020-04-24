@@ -239,6 +239,7 @@ void AVRCharacter::UpdateAxisMapping(UInputSettings* InputSettings, FName AxisNa
 
 void AVRCharacter::StartTeleportationCheck()
 {
+	if (GetTeleportController()->bGoodFlickRotation()) { return; } // We only want to allow teleporting if not trying to flick
 	GetTeleportController()->SetCanCheckTeleport(true);
 }
 

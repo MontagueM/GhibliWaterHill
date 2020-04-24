@@ -43,9 +43,9 @@ public:
 
 	void StopTeleportationCheck();
 private:
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(VisibleAnywhere)
 	class UCameraComponent* Camera = nullptr;
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(VisibleAnywhere)
 	class USceneComponent* VRRoot = nullptr;
 	class AVRController* LeftController = nullptr;
 	class AVRController* RightController = nullptr;
