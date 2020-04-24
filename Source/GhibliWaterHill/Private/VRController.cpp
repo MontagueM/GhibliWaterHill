@@ -46,8 +46,11 @@ AVRController::AVRController()
 	ControllerMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ControllerMesh"));
 	ControllerMesh->SetupAttachment(GetRootComponent());
 
+	FlickRoot = CreateDefaultSubobject<USceneComponent>(TEXT("FlickRoot"));
+	FlickRoot->SetupAttachment(GetRootComponent());
+
 	FlickVolume = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FlickVolume"));
-	FlickVolume->SetupAttachment(GetRootComponent());
+	FlickVolume->SetupAttachment(FlickRoot);
 }
 
 // Called when the game starts or when spawned
@@ -76,14 +79,14 @@ void AVRController::Tick(float DeltaTime)
 	}
 	if (Hand == EControllerHand::Left)
 	{
-		if (RegisteredSplineComponent)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("The %d"), RegisteredSplineComponent->GetNumberOfSplinePoints())
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Spline is nullptr"))
-		}
+		//if (RegisteredSplineComponent)
+		//{
+		//	UE_LOG(LogTemp, Warning, TEXT("The %d"), RegisteredSplineComponent->GetNumberOfSplinePoints())
+		//}
+		//else
+		//{
+		//	UE_LOG(LogTemp, Warning, TEXT("Spline is nullptr"))
+		//}
 
 
 		FlickHighlight();
@@ -124,7 +127,7 @@ bool AVRController::FindTeleportDestination(FVector& Location)
 		TeleportProjectileSpeed,
 		TeleportSimulationTime,
 		ECollisionChannel::ECC_Visibility);
-	UpdateSpline(Result, TeleportPath);
+	UpdateSpline(PathPointDataToFVector(Result.PathData), TeleportPath);
 
 	/// We want to make sure we are also allowed to teleport there
 	UNavigationSystemV1* UNavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
@@ -152,14 +155,20 @@ bool AVRController::ProjectilePathingUpdate(FPredictProjectilePathResult& Result
 	return bHit;
 }
 
-void AVRController::UpdateSpline(FPredictProjectilePathResult Result, USplineComponent* PathToUpdate)
+TArray<FVector> AVRController::PathPointDataToFVector(TArray<FPredictProjectilePathPointData> PathData)
+{
+	TArray<FVector> OutArray;
+	for (FPredictProjectilePathPointData Point : PathData) { OutArray.Add(Point.Location); }
+	return OutArray;
+}
+
+void AVRController::UpdateSpline(TArray<FVector> PathData, USplineComponent* PathToUpdate)
 {
 	// to hide left over spline components
 	ClearSplinePoints(PathToUpdate, true);
-
-	for (int i = 0; i < Result.PathData.Num(); i++)
+	for (int i = 0; i < PathData.Num(); i++)
 	{
-		if (Result.PathData.Num() > MeshObjects.Num()) // only add if we need to add another one
+		if (PathData.Num() > MeshObjects.Num()) // only add if we need to add another one
 		{
 
 			SplineMesh = NewObject<USplineMeshComponent>(this);
@@ -169,8 +178,7 @@ void AVRController::UpdateSpline(FPredictProjectilePathResult Result, USplineCom
 			SplineMesh->RegisterComponent();
 			MeshObjects.Add(SplineMesh);
 		}
-		PathToUpdate->AddSplinePoint(Result.PathData[i].Location, ESplineCoordinateSpace::Local, ESplinePointType::Curve);
-
+		PathToUpdate->AddSplinePoint(PathData[i], ESplineCoordinateSpace::Local, ESplinePointType::Curve);
 		/// Orienting the meshes
 		if (i > 0)
 		{
@@ -182,7 +190,7 @@ void AVRController::UpdateSpline(FPredictProjectilePathResult Result, USplineCom
 			MeshObjects[i - 1]->SetVisibility(true);
 			if (bCanCheckTeleport)
 			{
-				if (i == Result.PathData.Num() - 1)
+				if (i == PathData.Num() - 1)
 				{
 					MarkerPoint->SetWorldLocation(LocationEnd);
 				}
@@ -282,12 +290,13 @@ void AVRController::FlickHighlight()
 		UE_LOG(LogTemp, Warning, TEXT("Trying to find object to flick"))
 		/// Ray-cast out to reach distance
 		FVector StartLocation = GetActorLocation();
-		FVector Direction = GetActorUpVector().RotateAngleAxis(140, GetActorRightVector()).RotateAngleAxis(-30, GetActorUpVector()).RotateAngleAxis(-30, GetActorForwardVector());
+		FVector Direction = GetActorUpVector().RotateAngleAxis(140, GetActorRightVector()).RotateAngleAxis(0, GetActorUpVector()).RotateAngleAxis(0, GetActorForwardVector());
 		// Randomising direction to produce a cone
 		//Direction += FVector(UKismetMathLibrary::RandomFloatInRange(-0.01, 0.01),
 		//	UKismetMathLibrary::RandomFloatInRange(-0.01, 0.01),
 		//	UKismetMathLibrary::RandomFloatInRange(-0.01, 0.01));
 		Direction.Normalize();
+
 
 		FPredictProjectilePathResult FlickResult;
 		bool bHit = ProjectilePathingUpdate(FlickResult,
@@ -297,6 +306,34 @@ void AVRController::FlickHighlight()
 			TeleportProjectileSpeed*1,
 			TeleportSimulationTime*2,
 			ECollisionChannel::ECC_PhysicsBody);
+		//// Trying out sphere multi sweep
+		//TArray<FHitResult> FlickHits;
+		//FCollisionQueryParams Params;
+		//Params.bDebugQuery = true;
+		//const FName TraceTag("DebugTraceTag");
+		//GetWorld()->DebugDrawTraceTag = TraceTag;
+		//Params.TraceTag = TraceTag;
+ 
+		//float SphereRadius = 100;
+		//bool bHit = GetWorld()->SweepMultiByChannel(FlickHits,
+		//	StartLocation,
+		//	StartLocation + Direction * 1000,
+		//	FQuat(),
+		//	ECollisionChannel::ECC_Visibility,
+		//	FCollisionShape::MakeSphere(SphereRadius),
+		//	Params
+		//	);
+		//// Temporary
+		//FHitResult FlickResult;
+		//bool bReplaced = false;
+		//for (FHitResult H : FlickHits)
+		//{
+		//	if (H.Component->IsSimulatingPhysics()) 
+		//	{ 
+		//		FlickResult = H;
+		//		bReplaced = true;
+		//	}
+		//}
 
 		//DrawDebugLine(GetWorld(),
 		//GetActorLocation(),
@@ -311,16 +348,50 @@ void AVRController::FlickHighlight()
 		//GetActorLocation() + GetActorRightVector() * 1000,
 		//FColor::Yellow);
 
-		// Getting a larger area to detect objects
 
-		FlickVolume->SetWorldLocation(FlickResult.LastTraceDestination.Location);
+		// Getting a larger area to detect objects
+		//FlickVolume->SetWorldLocation(FlickResult.LastTraceDestination.Location);
+		//TArray<UPrimitiveComponent*> PotentialFlickComponents;
+		//TArray<float> Distances;
+		//GetOverlappingComponents(PotentialFlickComponents);
+
+		//for (UPrimitiveComponent* Comp : PotentialFlickComponents)
+		//{
+		//	if (ensure(Comp))
+		//	{
+		//		Distances.Add(FVector::Distance(Comp->GetComponentLocation(), FlickVolume->GetComponentLocation()));
+		//		UE_LOG(LogTemp, Warning, TEXT("Comp %s"), *Comp->GetName())
+		//	}
+		//}
+		//UE_LOG(LogTemp, Warning, TEXT("3"))
+		//int32 MinIndex = 0;
+		//float MinValue = 0;
+		//UPrimitiveComponent* Component = nullptr;
+		//if (Distances.Num() > 0)
+		//{
+		//	UKismetMathLibrary::MinOfFloatArray(Distances, MinIndex, MinValue);
+		//	Component = PotentialFlickComponents[MinIndex];
+		//}
+		//else { Component = FlickResult.HitResult.GetComponent(); }
+		//UpdateSpline(FlickResult.PathData, FlickPath);
+		//UpdateSpline(FlickResult.PathData, FlickPath);
+
+		//if (!bReplaced)
+		//{
+		//	ClearSplinePoints(FlickPath, true);
+		//	UE_LOG(LogTemp, Warning, TEXT("Resetting! 3"))
+		//	return;
+		//}
+
+		// Getting a larger area to detect objects
+		FlickRoot->SetWorldRotation(Direction.Rotation());
 		TArray<UPrimitiveComponent*> PotentialFlickComponents;
 		TArray<float> Distances;
 		GetOverlappingComponents(PotentialFlickComponents);
 
 		for (UPrimitiveComponent* Comp : PotentialFlickComponents)
 		{
-			if (ensure(Comp))
+			if (ensure(Comp) && Comp->IsSimulatingPhysics())
 			{
 				Distances.Add(FVector::Distance(Comp->GetComponentLocation(), FlickVolume->GetComponentLocation()));
 				UE_LOG(LogTemp, Warning, TEXT("Comp %s"), *Comp->GetName())
@@ -336,23 +407,45 @@ void AVRController::FlickHighlight()
 			Component = PotentialFlickComponents[MinIndex];
 		}
 		else { Component = FlickResult.HitResult.GetComponent(); }
-		UpdateSpline(FlickResult, FlickPath);
+		UpdateSpline(PathPointDataToFVector(FlickResult.PathData), FlickPath);
+		UpdateSpline(PathPointDataToFVector(FlickResult.PathData), FlickPath);
+
+		//UPrimitiveComponent* Component = FlickResult.HitResult.GetComponent();
+
+		if (bHit && Component->IsSimulatingPhysics())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("1 %s"), *Component->GetName())
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("0"))
+		}
+
+
 		bool bNew = false;
 		if (RegisteredFlickComponent != Component ||
 			(FVector::Distance(RegisteredControllerLocation, GetActorLocation()) > 1 && RegisteredControllerLocation != FVector::ZeroVector))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Resetting! 2"))
-				ResetRegisteredComponents();
+			ResetRegisteredComponents();
 			bNew = true;
 		}
-		if (bHit && Component != ControllerMesh && Component->IsSimulatingPhysics() && !ComponentCurrentlyFlicking)
+		if (bHit && Component != ControllerMesh && Component->IsSimulatingPhysics() && !ComponentCurrentlyFlicking )
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Found object to flick %s"), *FlickResult.HitResult.GetActor()->GetName())
+			//UE_LOG(LogTemp, Warning, TEXT("Found object to flick %s"), *FlickResult.HitResult.GetActor()->GetName())
+			UE_LOG(LogTemp, Warning, TEXT("Found object to flick %s"), *Component->GetName())
 			RegisteredFlickComponent = Component;
 			RegisteredFlickComponent->SetRenderCustomDepth(true);
 			RegisteredSplineComponent = FlickPath;
 			UE_LOG(LogTemp, Warning, TEXT("1"))
 			RegisteredControllerLocation = GetActorLocation();
+
+			TArray<FVector> SplinePoints;
+			FVector SplinePoint1 = GetActorLocation();
+			FVector SplinePoint3 = RegisteredFlickComponent->GetComponentLocation();
+			FVector SplineDirection = SplinePoint3 - SplinePoint1;
+			FVector SplinePoint2 = GetActorLocation() + Direction * FVector::Distance(SplinePoint1, SplinePoint3) / 2;
+			UpdateSpline(SplinePoints, FlickPath);
 		}
 		else 
 		{ 
@@ -378,7 +471,7 @@ void AVRController::TryFlick()
 			//UE_LOG(LogTemp, Warning, TEXT("WOOOOOOOOOOOOOOOOOOOOO"))
 			ComponentCurrentlyFlicking = RegisteredFlickComponent; // TODO figure this stuff out, need to smoothly move from 0 to 1
 			RegisteredFlickComponent = nullptr;
-			ClearSplinePoints(FlickPath, false); // TODO check if causing error
+			ClearSplinePoints(FlickPath, false);
 			StartComponentFling.Broadcast(RegisteredSplineComponent, ComponentCurrentlyFlicking);
 		}
 		else

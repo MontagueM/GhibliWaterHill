@@ -65,6 +65,8 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* ControllerMesh = nullptr;
 	UPROPERTY(VisibleAnywhere)
+	class USceneComponent* FlickRoot = nullptr;
+	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* FlickVolume = nullptr;
 
 	UPROPERTY(EditDefaultsOnly)
@@ -98,8 +100,8 @@ private:
 	float GrabbedComponentInitDistance;
 	FRotator ControllerRotationOnGrab;
 private:
-	void UpdateSpline(struct FPredictProjectilePathResult Result, USplineComponent* PathToUpdate);
-	bool ProjectilePathingUpdate(FPredictProjectilePathResult& Result, float ProjectileRadius, FVector StartLocation, FVector Direction, float ProjectileSpeed, float SimulationTime, ECollisionChannel CollisionChannel);
+	void UpdateSpline(TArray<FVector> PathData, USplineComponent* PathToUpdate);
+	bool ProjectilePathingUpdate(struct FPredictProjectilePathResult& Result, float ProjectileRadius, FVector StartLocation, FVector Direction, float ProjectileSpeed, float SimulationTime, ECollisionChannel CollisionChannel);
 
 private:
 	void FlickHighlight();
@@ -109,7 +111,8 @@ private:
 	UFUNCTION(BlueprintCallable)
 	void ResetRegisteredComponents();
 	void ClearSplinePoints(USplineComponent* PathToUpdate, bool Clear);
-	// TODO add a function for release flick with a reset for FlickedComponent
+	TArray<FVector> PathPointDataToFVector(TArray<struct FPredictProjectilePathPointData> PathData);
+	
 	UPrimitiveComponent* RegisteredFlickComponent = nullptr;
 	USplineComponent* RegisteredSplineComponent = nullptr;
 	FVector RegisteredControllerLocation = FVector::ZeroVector;
