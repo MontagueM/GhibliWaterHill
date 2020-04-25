@@ -113,8 +113,6 @@ void AVRController::SetHand(EControllerHand SetHand) {
 	}
 }
 
-EControllerHand AVRController::GetHand() { return Hand; }
-
 bool AVRController::FindTeleportDestination(FVector& Location)
 {
 	/// Using rotateangleaxis for easiness in teleportation handling (rotates it down from the controller)
@@ -168,7 +166,7 @@ TArray<FVector> AVRController::PathPointDataToFVector(TArray<FPredictProjectileP
 void AVRController::UpdateSpline(TArray<FVector> PathData, USplineComponent* PathToUpdate)
 {
 	// to hide left over spline components
-	ClearSplinePoints(PathToUpdate, true);
+	ModifySplinePoints(PathToUpdate, true, true);
 	for (int i = 0; i < PathData.Num(); i++)
 	{
 		if (PathData.Num() > MeshObjects.Num()) // only add if we need to add another one
@@ -293,22 +291,21 @@ void AVRController::FlickHighlight()
 		UE_LOG(LogTemp, Warning, TEXT("Trying to find object to flick"))
 		/// Ray-cast out to reach distance
 		FVector StartLocation = GetActorLocation();
-		FVector Direction = GetActorUpVector().RotateAngleAxis(140, GetActorRightVector()).RotateAngleAxis(0, GetActorUpVector()).RotateAngleAxis(0, GetActorForwardVector());
-		Direction.Normalize();
+		HandFlickDirection = GetActorUpVector().RotateAngleAxis(100, GetActorRightVector()).RotateAngleAxis(0, GetActorUpVector()).RotateAngleAxis(0, GetActorForwardVector());
 
 
 		FPredictProjectilePathResult FlickResult;
 		bool bHit = ProjectilePathingUpdate(FlickResult,
 			TeleportProjectileRadius,
 			StartLocation,
-			Direction,
+			HandFlickDirection,
 			TeleportProjectileSpeed*1,
 			TeleportSimulationTime*2,
 			ECollisionChannel::ECC_PhysicsBody);
 		
 
 		// Getting a larger area to detect objects
-		FlickRoot->SetWorldRotation(Direction.Rotation());
+		FlickRoot->SetWorldRotation(HandFlickDirection.Rotation());
 		TArray<UPrimitiveComponent*> PotentialFlickComponents;
 		TArray<float> Distances;
 		GetOverlappingComponents(PotentialFlickComponents);
@@ -329,12 +326,11 @@ void AVRController::FlickHighlight()
 			Component = PotentialFlickComponents[MinIndex];
 		}
 		else { Component = FlickResult.HitResult.GetComponent(); }
-
-		bNewComponent = false;
+		bOnOldComponent = true;
 		if (RegisteredFlickComponent != Component ||
 			(FVector::Distance(RegisteredControllerLocation, GetActorLocation()) > 1 && RegisteredControllerLocation != FVector::ZeroVector))
 		{
-			bNewComponent = true;
+			bOnOldComponent = false;
 			if (!bHoldingFlick)
 			{
 				ResetRegisteredComponents();
@@ -347,29 +343,39 @@ void AVRController::FlickHighlight()
 			RegisteredFlickComponent->SetRenderCustomDepth(true);
 			RegisteredControllerLocation = GetActorLocation();
 
-			FVector Vec1 = GetActorLocation();
-			FVector Vec2 = RegisteredFlickComponent->GetComponentLocation();
-			float DirectionAngle = acos(FVector::DotProduct(Direction, Vec2 - Vec1) / (Direction.Size() * (Vec2 - Vec1).Size()));
-			UE_LOG(LogTemp, Warning, TEXT("Angle %f"), DirectionAngle)
-			float CpMultiplier = 100 * pow(DirectionAngle/(25*PI/180), 2); // Remove magic number and deal with angle going down
-			FVector Cp1 = Vec1 - GetActorRightVector() * CpMultiplier;
-			FVector Cp2 = Vec2 - GetActorRightVector() * CpMultiplier;
-			DebugMesh->SetWorldLocation(FVector::ZeroVector);
-			FVector ControlPoints[4] = { Vec1,
-			Cp1,
-			Cp2,
-			Vec2 };
-			int32 NumPoints = 100;
-			TArray<FVector> OutPoints;
-			FVector::EvaluateBezier(ControlPoints, NumPoints, OutPoints);
-			UpdateSpline(OutPoints, FlickPath);
-			RegisteredSplineComponent = FlickPath;
+			UpdateFlickSpline(HandFlickDirection);
+			UE_LOG(LogTemp, Warning, TEXT("2"))
 		}
 		else 
 		{ 
-			ClearSplinePoints(FlickPath, true);
+			ModifySplinePoints(FlickPath, true, true);
+			bOnOldComponent = false;
 		}
 	}
+}
+
+void AVRController::UpdateFlickSpline(FVector Direction)
+{
+	FVector Vec1 = GetActorLocation();
+	FVector Vec2 = RegisteredFlickComponent->GetComponentLocation();
+	float DirectionAngle = acos(FVector::DotProduct(Direction, Vec2 - Vec1) / (Direction.Size() * (Vec2 - Vec1).Size()));
+	UE_LOG(LogTemp, Warning, TEXT("Angle %f"), DirectionAngle)
+		float CpMultiplier = 100 * pow(DirectionAngle / (15 * PI / 180), 2); // Remove magic number and deal with angle going down
+	UE_LOG(LogTemp, Warning, TEXT("3"))
+		FVector Cp1 = Vec1 - GetActorRightVector() * CpMultiplier;
+	FVector Cp2 = Vec2 - GetActorRightVector() * CpMultiplier;
+	//DebugMesh->SetWorldLocation(FVector::ZeroVector);
+	FVector ControlPoints[4] = { Vec1,
+	Cp1,
+	Cp2,
+	Vec2 };
+	int32 NumPoints = 100;
+	TArray<FVector> OutPoints;
+	UE_LOG(LogTemp, Warning, TEXT("5"))
+		FVector::EvaluateBezier(ControlPoints, NumPoints, OutPoints);
+	UpdateSpline(OutPoints, FlickPath);
+	ModifySplinePoints(FlickPath, true, false); // DO hide points, DO NOT remove them
+	RegisteredSplineComponent = FlickPath;
 }
 
 void AVRController::TryFlick()
@@ -380,15 +386,19 @@ void AVRController::TryFlick()
 	*/
 	//UE_LOG(LogTemp, Warning, TEXT("Trying to flick"))
 	bHoldingFlick = true;
+	UpdateFlickSpline(HandFlickDirection);
+	ModifySplinePoints(FlickPath, false, false);
+	UE_LOG(LogTemp, Warning, TEXT("Hodl"))
 	if (RegisteredFlickComponent && !bIsGrabbing)
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("1"))
-		if (bUpVelocityForFlick() && bNewComponent)
+		if (bUpVelocityForFlick())
 		{
 			//UE_LOG(LogTemp, Warning, TEXT("WOOOOOOOOOOOOOOOOOOOOO"))
 			ComponentCurrentlyFlicking = RegisteredFlickComponent; // TODO figure this stuff out, need to smoothly move from 0 to 1
 			RegisteredFlickComponent = nullptr;
-			ClearSplinePoints(FlickPath, false);
+			ModifySplinePoints(FlickPath, true, false); // we only want to hide the spline points
+			ComponentCurrentlyFlicking->SetRenderCustomDepth(false);
 			StartComponentFling.Broadcast(RegisteredSplineComponent, ComponentCurrentlyFlicking);
 		}
 		else
@@ -428,13 +438,13 @@ void AVRController::ResetRegisteredComponents()
 	RegisteredControllerLocation = FVector::ZeroVector;
 }
 
-void AVRController::ClearSplinePoints(USplineComponent* PathToUpdate, bool Clear)
+void AVRController::ModifySplinePoints(USplineComponent* PathToUpdate, bool bHidePoints, bool bClear)
 {
 	for (USplineMeshComponent* u : MeshObjects)
 	{
-		u->SetVisibility(false);
+		u->SetVisibility(!bHidePoints);
 	}
-	if (Clear) { PathToUpdate->ClearSplinePoints(true); }
+	if (bClear) { PathToUpdate->ClearSplinePoints(true); }
 	//UE_LOG(LogTemp, Error, TEXT("ClearSplinePoints"))
 }
 

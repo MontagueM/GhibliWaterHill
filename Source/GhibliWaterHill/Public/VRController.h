@@ -39,14 +39,13 @@ public:
 
 	UPROPERTY(EditDefaultsOnly)
 	EControllerHand TeleportHand = EControllerHand::Left;
+	EControllerHand Hand;
 private:
 	// 	UPROPERTY(VisibleAnywhere)
-	EControllerHand Hand;
+
 	UPROPERTY(VisibleAnywhere)
 	class UMotionControllerComponent* MotionController;
 
-	UFUNCTION(BlueprintCallable)
-	EControllerHand GetHand();
 private:
 	UPROPERTY()
 	class USplineMeshComponent* SplineMesh = nullptr;
@@ -107,12 +106,13 @@ private:
 
 private:
 	void FlickHighlight();
+	void UpdateFlickSpline(FVector Direction);
 	void TryFlick();
 	bool bUpVelocityForFlick();
 	void ReleaseFlick();
 	UFUNCTION(BlueprintCallable)
 	void ResetRegisteredComponents();
-	void ClearSplinePoints(USplineComponent* PathToUpdate, bool Clear);
+	void ModifySplinePoints(USplineComponent* PathToUpdate, bool bHidePoints, bool bClear);
 	TArray<FVector> PathPointDataToFVector(TArray<struct FPredictProjectilePathPointData> PathData);
 	
 	UPrimitiveComponent* RegisteredFlickComponent = nullptr;
@@ -120,7 +120,8 @@ private:
 	FVector RegisteredControllerLocation = FVector::ZeroVector;
 	UPrimitiveComponent* ComponentCurrentlyFlicking = nullptr;
 	bool bHoldingFlick = false;
-	bool bNewComponent = false;
+	bool bOnOldComponent = true;
+	FVector HandFlickDirection;
 
 public:
 	UPROPERTY(BlueprintAssignable)
