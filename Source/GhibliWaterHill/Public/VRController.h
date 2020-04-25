@@ -120,6 +120,7 @@ private:
 	FVector RegisteredControllerLocation = FVector::ZeroVector;
 	UPrimitiveComponent* ComponentCurrentlyFlicking = nullptr;
 	bool bHoldingFlick = false;
+	bool bNewComponent = false;
 
 public:
 	UPROPERTY(BlueprintAssignable)

@@ -330,12 +330,15 @@ void AVRController::FlickHighlight()
 		}
 		else { Component = FlickResult.HitResult.GetComponent(); }
 
-		bool bNew = false;
+		bNewComponent = false;
 		if (RegisteredFlickComponent != Component ||
 			(FVector::Distance(RegisteredControllerLocation, GetActorLocation()) > 1 && RegisteredControllerLocation != FVector::ZeroVector))
 		{
-			ResetRegisteredComponents();
-			bNew = true;
+			bNewComponent = true;
+			if (!bHoldingFlick)
+			{
+				ResetRegisteredComponents();
+			}
 		}
 		if (bHit && Component != ControllerMesh && Component->IsSimulatingPhysics() && !ComponentCurrentlyFlicking )
 		{
@@ -348,7 +351,7 @@ void AVRController::FlickHighlight()
 			FVector Vec2 = RegisteredFlickComponent->GetComponentLocation();
 			float DirectionAngle = acos(FVector::DotProduct(Direction, Vec2 - Vec1) / (Direction.Size() * (Vec2 - Vec1).Size()));
 			UE_LOG(LogTemp, Warning, TEXT("Angle %f"), DirectionAngle)
-			float CpMultiplier = 100 * pow(DirectionAngle/(25*PI/180), 3); // Remove magic number and deal with angle going down
+			float CpMultiplier = 100 * pow(DirectionAngle/(25*PI/180), 2); // Remove magic number and deal with angle going down
 			FVector Cp1 = Vec1 - GetActorRightVector() * CpMultiplier;
 			FVector Cp2 = Vec2 - GetActorRightVector() * CpMultiplier;
 			DebugMesh->SetWorldLocation(FVector::ZeroVector);
@@ -380,7 +383,7 @@ void AVRController::TryFlick()
 	if (RegisteredFlickComponent && !bIsGrabbing)
 	{
 		//UE_LOG(LogTemp, Warning, TEXT("1"))
-		if (bUpVelocityForFlick())
+		if (bUpVelocityForFlick() && bNewComponent)
 		{
 			//UE_LOG(LogTemp, Warning, TEXT("WOOOOOOOOOOOOOOOOOOOOO"))
 			ComponentCurrentlyFlicking = RegisteredFlickComponent; // TODO figure this stuff out, need to smoothly move from 0 to 1
