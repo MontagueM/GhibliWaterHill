@@ -277,7 +277,7 @@ bool AVRController::bGoodFlickRotation()
 	// TODO we can deal with the magic numbers here at least for now
 	if (Hand == EControllerHand::Left) // since we need to change it/flip it based on the hand
 	{
-		if (( Rotation.Pitch < 15 && Rotation.Pitch > -45 ) && (Rotation.Roll < 120 && Rotation.Roll > 15))
+		if (( Rotation.Pitch < 25 && Rotation.Pitch > -45 ) && (Rotation.Roll < 120 && Rotation.Roll > 15))
 		{
 			//UE_LOG(LogTemp, Warning, TEXT("Trying to highlight"))
 			return true;
@@ -294,10 +294,6 @@ void AVRController::FlickHighlight()
 		/// Ray-cast out to reach distance
 		FVector StartLocation = GetActorLocation();
 		FVector Direction = GetActorUpVector().RotateAngleAxis(140, GetActorRightVector()).RotateAngleAxis(0, GetActorUpVector()).RotateAngleAxis(0, GetActorForwardVector());
-		// Randomising direction to produce a cone
-		//Direction += FVector(UKismetMathLibrary::RandomFloatInRange(-0.01, 0.01),
-		//	UKismetMathLibrary::RandomFloatInRange(-0.01, 0.01),
-		//	UKismetMathLibrary::RandomFloatInRange(-0.01, 0.01));
 		Direction.Normalize();
 
 
@@ -309,82 +305,7 @@ void AVRController::FlickHighlight()
 			TeleportProjectileSpeed*1,
 			TeleportSimulationTime*2,
 			ECollisionChannel::ECC_PhysicsBody);
-		//// Trying out sphere multi sweep
-		//TArray<FHitResult> FlickHits;
-		//FCollisionQueryParams Params;
-		//Params.bDebugQuery = true;
-		//const FName TraceTag("DebugTraceTag");
-		//GetWorld()->DebugDrawTraceTag = TraceTag;
-		//Params.TraceTag = TraceTag;
- 
-		//float SphereRadius = 100;
-		//bool bHit = GetWorld()->SweepMultiByChannel(FlickHits,
-		//	StartLocation,
-		//	StartLocation + Direction * 1000,
-		//	FQuat(),
-		//	ECollisionChannel::ECC_Visibility,
-		//	FCollisionShape::MakeSphere(SphereRadius),
-		//	Params
-		//	);
-		//// Temporary
-		//FHitResult FlickResult;
-		//bool bReplaced = false;
-		//for (FHitResult H : FlickHits)
-		//{
-		//	if (H.Component->IsSimulatingPhysics()) 
-		//	{ 
-		//		FlickResult = H;
-		//		bReplaced = true;
-		//	}
-		//}
-
-		//DrawDebugLine(GetWorld(),
-		//GetActorLocation(),
-		//GetActorLocation() + GetActorForwardVector() * 1000,
-		//FColor::Red);
-		//DrawDebugLine(GetWorld(),
-		//GetActorLocation(),
-		//GetActorLocation() + GetActorUpVector() * 1000,
-		//FColor::Blue);
-		//DrawDebugLine(GetWorld(),
-		//GetActorLocation(),
-		//GetActorLocation() + GetActorRightVector() * 1000,
-		//FColor::Yellow);
-
-
-		// Getting a larger area to detect objects
-		//FlickVolume->SetWorldLocation(FlickResult.LastTraceDestination.Location);
-		//TArray<UPrimitiveComponent*> PotentialFlickComponents;
-		//TArray<float> Distances;
-		//GetOverlappingComponents(PotentialFlickComponents);
-
-		//for (UPrimitiveComponent* Comp : PotentialFlickComponents)
-		//{
-		//	if (ensure(Comp))
-		//	{
-		//		Distances.Add(FVector::Distance(Comp->GetComponentLocation(), FlickVolume->GetComponentLocation()));
-		//		UE_LOG(LogTemp, Warning, TEXT("Comp %s"), *Comp->GetName())
-		//	}
-		//}
-		//UE_LOG(LogTemp, Warning, TEXT("3"))
-		//int32 MinIndex = 0;
-		//float MinValue = 0;
-		//UPrimitiveComponent* Component = nullptr;
-		//if (Distances.Num() > 0)
-		//{
-		//	UKismetMathLibrary::MinOfFloatArray(Distances, MinIndex, MinValue);
-		//	Component = PotentialFlickComponents[MinIndex];
-		//}
-		//else { Component = FlickResult.HitResult.GetComponent(); }
-		//UpdateSpline(FlickResult.PathData, FlickPath);
-		//UpdateSpline(FlickResult.PathData, FlickPath);
-
-		//if (!bReplaced)
-		//{
-		//	ClearSplinePoints(FlickPath, true);
-		//	UE_LOG(LogTemp, Warning, TEXT("Resetting! 3"))
-		//	return;
-		//}
+		
 
 		// Getting a larger area to detect objects
 		FlickRoot->SetWorldRotation(Direction.Rotation());
@@ -397,10 +318,8 @@ void AVRController::FlickHighlight()
 			if (ensure(Comp) && Comp->IsSimulatingPhysics())
 			{
 				Distances.Add(FVector::Distance(Comp->GetComponentLocation(), FlickVolume->GetComponentLocation()));
-				//UE_LOG(LogTemp, Warning, TEXT("Comp %s"), *Comp->GetName())
 			}
 		}
-		//UE_LOG(LogTemp, Warning, TEXT("3"))
 		int32 MinIndex = 0;
 		float MinValue = 0;
 		UPrimitiveComponent* Component = nullptr;
@@ -410,56 +329,33 @@ void AVRController::FlickHighlight()
 			Component = PotentialFlickComponents[MinIndex];
 		}
 		else { Component = FlickResult.HitResult.GetComponent(); }
-		//UpdateSpline(PathPointDataToFVector(FlickResult.PathData), FlickPath);
-		//UpdateSpline(PathPointDataToFVector(FlickResult.PathData), FlickPath);
-
-		//UPrimitiveComponent* Component = FlickResult.HitResult.GetComponent();
-
-		//if (bHit && Component->IsSimulatingPhysics())
-		//{
-		//	UE_LOG(LogTemp, Warning, TEXT("1 %s"), *Component->GetName())
-		//}
-		//else
-		//{
-		//	UE_LOG(LogTemp, Warning, TEXT("0"))
-		//}
-
 
 		bool bNew = false;
 		if (RegisteredFlickComponent != Component ||
 			(FVector::Distance(RegisteredControllerLocation, GetActorLocation()) > 1 && RegisteredControllerLocation != FVector::ZeroVector))
 		{
-			//UE_LOG(LogTemp, Warning, TEXT("Resetting! 2"))
 			ResetRegisteredComponents();
 			bNew = true;
 		}
 		if (bHit && Component != ControllerMesh && Component->IsSimulatingPhysics() && !ComponentCurrentlyFlicking )
 		{
-			//UE_LOG(LogTemp, Warning, TEXT("Found object to flick %s"), *FlickResult.HitResult.GetActor()->GetName())
 			UE_LOG(LogTemp, Warning, TEXT("Found object to flick %s"), *Component->GetName())
 			RegisteredFlickComponent = Component;
 			RegisteredFlickComponent->SetRenderCustomDepth(true);
-			//UE_LOG(LogTemp, Warning, TEXT("1"))
 			RegisteredControllerLocation = GetActorLocation();
 
-			//TArray<FVector> SplinePoints;
-			//FVector SplinePoint1 = GetActorLocation();
-			//FVector SplinePoint3 = RegisteredFlickComponent->GetComponentLocation();
-			//FVector SplinePoint2 = GetActorLocation() + Direction * FVector::Distance(SplinePoint1, SplinePoint3) / 2;
-			//SplinePoints.Add(SplinePoint1);
-			//SplinePoints.Add(SplinePoint2);
-			//SplinePoints.Add(SplinePoint3);
-			//UE_LOG(LogTemp, Warning, TEXT("Spline loc 1 %s"), *SplinePoint1.ToString())
-			//UE_LOG(LogTemp, Warning, TEXT("Spline loc 2 %s"), *SplinePoint2.ToString())
-			//UE_LOG(LogTemp, Warning, TEXT("Spline loc 3 %s"), *SplinePoint3.ToString())
-
-			FVector Vec1 = GetActorLocation() - GetActorRightVector() * 100;
-			FVector Vec2 = RegisteredFlickComponent->GetComponentLocation() - GetActorRightVector() * 100;
-			DebugMesh->SetWorldLocation(Vec1);
-			FVector ControlPoints[4] = { GetActorLocation(),
-			Vec1,
-			Vec2,
-			RegisteredFlickComponent->GetComponentLocation() };
+			FVector Vec1 = GetActorLocation();
+			FVector Vec2 = RegisteredFlickComponent->GetComponentLocation();
+			float DirectionAngle = acos(FVector::DotProduct(Direction, Vec2 - Vec1) / (Direction.Size() * (Vec2 - Vec1).Size()));
+			UE_LOG(LogTemp, Warning, TEXT("Angle %f"), DirectionAngle)
+			float CpMultiplier = 100 * pow(DirectionAngle/(25*PI/180), 3); // Remove magic number and deal with angle going down
+			FVector Cp1 = Vec1 - GetActorRightVector() * CpMultiplier;
+			FVector Cp2 = Vec2 - GetActorRightVector() * CpMultiplier;
+			DebugMesh->SetWorldLocation(FVector::ZeroVector);
+			FVector ControlPoints[4] = { Vec1,
+			Cp1,
+			Cp2,
+			Vec2 };
 			int32 NumPoints = 100;
 			TArray<FVector> OutPoints;
 			FVector::EvaluateBezier(ControlPoints, NumPoints, OutPoints);
@@ -469,7 +365,6 @@ void AVRController::FlickHighlight()
 		else 
 		{ 
 			ClearSplinePoints(FlickPath, true);
-			//UE_LOG(LogTemp, Warning, TEXT("Resetting! 3"))
 		}
 	}
 }
@@ -504,7 +399,7 @@ void AVRController::TryFlick()
 bool AVRController::bUpVelocityForFlick()
 {
 	FVector Velocity = ControllerMesh->GetPhysicsAngularVelocityInDegrees();
-	return (abs(Velocity.X) > 75 && abs(Velocity.Y) > 75);
+	return (abs(Velocity.X) > 125 && abs(Velocity.Y) > 125); // TODO mess with this
 }
 
 void AVRController::ReleaseFlick()
