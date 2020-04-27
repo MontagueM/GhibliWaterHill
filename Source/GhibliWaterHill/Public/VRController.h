@@ -46,6 +46,8 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	class UMotionControllerComponent* MotionController;
 
+	UPROPERTY(EditDefaultsOnly)
+	class UCurveFloat* FlickAngleCurve = nullptr;
 private:
 	UPROPERTY()
 	class USplineMeshComponent* SplineMesh = nullptr;
@@ -106,7 +108,7 @@ private:
 
 private:
 	void FlickHighlight();
-	void UpdateFlickSpline(FVector Direction);
+	void UpdateFlickSpline();
 	void TryFlick();
 	bool bUpVelocityForFlick();
 	void ReleaseFlick();
@@ -121,7 +123,7 @@ private:
 	UPrimitiveComponent* ComponentCurrentlyFlicking = nullptr;
 	bool bHoldingFlick = false;
 	bool bOnOldComponent = true;
-	FVector HandFlickDirection;
+	float FlickVelocityRequired = 250;
 
 public:
 	UPROPERTY(BlueprintAssignable)

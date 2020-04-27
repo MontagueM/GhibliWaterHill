@@ -82,13 +82,13 @@ void AVRController::Tick(float DeltaTime)
 	}
 	if (Hand == EControllerHand::Left)
 	{
-		//if (RegisteredSplineComponent)
+		//if (bHoldingFlick)
 		//{
-		//	UE_LOG(LogTemp, Warning, TEXT("The %d"), RegisteredSplineComponent->GetNumberOfSplinePoints())
+		//	UE_LOG(LogTemp, Warning, TEXT("true!"))
 		//}
 		//else
 		//{
-		//	UE_LOG(LogTemp, Warning, TEXT("Spline is nullptr"))
+		//	UE_LOG(LogTemp, Warning, TEXT("false!"))
 		//}
 
 
@@ -250,11 +250,7 @@ void AVRController::SetCanCheckTeleport(bool bCheck)
 	bCanCheckTeleport = bCheck;
 	DestinationMarker->SetVisibility(false);
 	MarkerPoint->SetVisibility(false);
-	for (USplineMeshComponent* u : MeshObjects)
-	{
-		u->SetVisibility(false);
-	}
-	TeleportPath->ClearSplinePoints(true);
+	ModifySplinePoints(TeleportPath, true, true);
 }
 
 void AVRController::DetectGrabStyle()
@@ -286,26 +282,24 @@ bool AVRController::bGoodFlickRotation()
 
 void AVRController::FlickHighlight()
 {
-	if (bGoodFlickRotation() && !bHoldingFlick && !ComponentCurrentlyFlicking)
+	if (bGoodFlickRotation() && !bHoldingFlick && !ComponentCurrentlyFlicking && !bIsGrabbing)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Trying to find object to flick"))
 		/// Ray-cast out to reach distance
 		FVector StartLocation = GetActorLocation();
-		HandFlickDirection = GetActorUpVector().RotateAngleAxis(100, GetActorRightVector()).RotateAngleAxis(0, GetActorUpVector()).RotateAngleAxis(0, GetActorForwardVector());
-
-
+		FVector HandDirection = GetActorUpVector().RotateAngleAxis(100, GetActorRightVector()).RotateAngleAxis(0, GetActorUpVector()).RotateAngleAxis(0, GetActorForwardVector());
 		FPredictProjectilePathResult FlickResult;
 		bool bHit = ProjectilePathingUpdate(FlickResult,
 			TeleportProjectileRadius,
 			StartLocation,
-			HandFlickDirection,
+			HandDirection,
 			TeleportProjectileSpeed*1,
 			TeleportSimulationTime*2,
 			ECollisionChannel::ECC_PhysicsBody);
 		
 
 		// Getting a larger area to detect objects
-		FlickRoot->SetWorldRotation(HandFlickDirection.Rotation());
+		FlickRoot->SetWorldRotation(HandDirection.Rotation());
 		TArray<UPrimitiveComponent*> PotentialFlickComponents;
 		TArray<float> Distances;
 		GetOverlappingComponents(PotentialFlickComponents);
@@ -326,11 +320,19 @@ void AVRController::FlickHighlight()
 			Component = PotentialFlickComponents[MinIndex];
 		}
 		else { Component = FlickResult.HitResult.GetComponent(); }
-		bOnOldComponent = true;
+		if (RegisteredFlickComponent != FlickResult.HitResult.GetComponent())
+		{
+			//UE_LOG(LogTemp, Warning, TEXT("false"))
+			bOnOldComponent = false;
+		}
+		else
+		{
+			//UE_LOG(LogTemp, Warning, TEXT("true"))
+			bOnOldComponent = true;
+		}
 		if (RegisteredFlickComponent != Component ||
 			(FVector::Distance(RegisteredControllerLocation, GetActorLocation()) > 1 && RegisteredControllerLocation != FVector::ZeroVector))
 		{
-			bOnOldComponent = false;
 			if (!bHoldingFlick)
 			{
 				ResetRegisteredComponents();
@@ -343,27 +345,30 @@ void AVRController::FlickHighlight()
 			RegisteredFlickComponent->SetRenderCustomDepth(true);
 			RegisteredControllerLocation = GetActorLocation();
 
-			UpdateFlickSpline(HandFlickDirection);
+			UpdateFlickSpline();
 			UE_LOG(LogTemp, Warning, TEXT("2"))
 		}
 		else 
 		{ 
 			ModifySplinePoints(FlickPath, true, true);
-			bOnOldComponent = false;
 		}
 	}
 }
 
-void AVRController::UpdateFlickSpline(FVector Direction)
+void AVRController::UpdateFlickSpline()
 {
 	FVector Vec1 = GetActorLocation();
 	FVector Vec2 = RegisteredFlickComponent->GetComponentLocation();
+	FVector Direction = GetActorUpVector().RotateAngleAxis(100, GetActorRightVector()).RotateAngleAxis(0, GetActorUpVector()).RotateAngleAxis(0, GetActorForwardVector());
 	float DirectionAngle = acos(FVector::DotProduct(Direction, Vec2 - Vec1) / (Direction.Size() * (Vec2 - Vec1).Size()));
 	UE_LOG(LogTemp, Warning, TEXT("Angle %f"), DirectionAngle)
-		float CpMultiplier = 100 * pow(DirectionAngle / (15 * PI / 180), 2); // Remove magic number and deal with angle going down
+	float CurveFloat = 0;
+	if (ensure(FlickAngleCurve)) { CurveFloat = FlickAngleCurve->GetFloatValue(DirectionAngle); }
+	float CpMultiplier = 250 * CurveFloat; // Remove magic number and deal with angle going down
 	UE_LOG(LogTemp, Warning, TEXT("3"))
-		FVector Cp1 = Vec1 - GetActorRightVector() * CpMultiplier;
-	FVector Cp2 = Vec2 - GetActorRightVector() * CpMultiplier;
+	FVector CpDirection = (FVector(0, 0, -1) + GetActorRightVector()).GetSafeNormal();
+	FVector Cp1 = Vec1 - CpDirection * CpMultiplier;
+	FVector Cp2 = Vec2 - CpDirection * CpMultiplier;
 	//DebugMesh->SetWorldLocation(FVector::ZeroVector);
 	FVector ControlPoints[4] = { Vec1,
 	Cp1,
@@ -372,7 +377,7 @@ void AVRController::UpdateFlickSpline(FVector Direction)
 	int32 NumPoints = 100;
 	TArray<FVector> OutPoints;
 	UE_LOG(LogTemp, Warning, TEXT("5"))
-		FVector::EvaluateBezier(ControlPoints, NumPoints, OutPoints);
+	FVector::EvaluateBezier(ControlPoints, NumPoints, OutPoints);
 	UpdateSpline(OutPoints, FlickPath);
 	ModifySplinePoints(FlickPath, true, false); // DO hide points, DO NOT remove them
 	RegisteredSplineComponent = FlickPath;
@@ -386,15 +391,15 @@ void AVRController::TryFlick()
 	*/
 	//UE_LOG(LogTemp, Warning, TEXT("Trying to flick"))
 	bHoldingFlick = true;
-	UpdateFlickSpline(HandFlickDirection);
+	UpdateFlickSpline();
 	ModifySplinePoints(FlickPath, false, false);
 	UE_LOG(LogTemp, Warning, TEXT("Hodl"))
 	if (RegisteredFlickComponent && !bIsGrabbing)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("1"))
-		if (bUpVelocityForFlick())
+		UE_LOG(LogTemp, Warning, TEXT("s"))
+		if (bUpVelocityForFlick() && !bOnOldComponent)
 		{
-			//UE_LOG(LogTemp, Warning, TEXT("WOOOOOOOOOOOOOOOOOOOOO"))
+			UE_LOG(LogTemp, Warning, TEXT("WOOOOOOOOOOOOOOOOOOOOO"))
 			ComponentCurrentlyFlicking = RegisteredFlickComponent; // TODO figure this stuff out, need to smoothly move from 0 to 1
 			RegisteredFlickComponent = nullptr;
 			ModifySplinePoints(FlickPath, true, false); // we only want to hide the spline points
@@ -412,7 +417,7 @@ void AVRController::TryFlick()
 bool AVRController::bUpVelocityForFlick()
 {
 	FVector Velocity = ControllerMesh->GetPhysicsAngularVelocityInDegrees();
-	return (abs(Velocity.X) > 125 && abs(Velocity.Y) > 125); // TODO mess with this
+	return (abs(Velocity.X) > FlickVelocityRequired && abs(Velocity.Y) > FlickVelocityRequired); // TODO mess with this
 }
 
 void AVRController::ReleaseFlick()
