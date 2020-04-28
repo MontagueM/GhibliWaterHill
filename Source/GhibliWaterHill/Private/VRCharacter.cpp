@@ -106,10 +106,10 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 			UpdateAxisMapping(InputSettings, TEXT("Teleport"), EKeys::OculusTouch_Left_Thumbstick_Y, 1); // sometimes oculus controllers dont work so for debug using spacebar
 			UpdateActionMapping(InputSettings, TEXT("CheckTeleport"), FKey(), EKeys::OculusTouch_Left_Thumbstick_Down);
-			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Right_Thumbstick_Up, 1);
-			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Right_Thumbstick_Down, -1);
-			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Right_Thumbstick_Right, 1);
-			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Right_Thumbstick_Left, -1);
+			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Right_Thumbstick_Y, 1);
+			//UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Right_Thumbstick_Down, -1);
+			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Right_Thumbstick_X, 1);
+			//UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Right_Thumbstick_Left, -1);
 			UpdateAxisMapping(InputSettings, TEXT("TurnRight"), EKeys::OculusTouch_Left_Thumbstick_X, 1);
 		} 
 		else 
@@ -124,10 +124,10 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 			UpdateAxisMapping(InputSettings, TEXT("Teleport"), EKeys::OculusTouch_Right_Thumbstick_Y, 1); // sometimes oculus controllers dont work so for debug using spacebar
 			UpdateActionMapping(InputSettings, TEXT("CheckTeleport"), FKey(), EKeys::OculusTouch_Right_Thumbstick_Down);
-			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Left_Thumbstick_Up, 1);
-			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Left_Thumbstick_Down, -1);
-			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Left_Thumbstick_Right, 1);
-			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Left_Thumbstick_Left, -1);
+			UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Left_Thumbstick_Y, 1);
+			//UpdateAxisMapping(InputSettings, TEXT("Forward"), EKeys::OculusTouch_Left_Thumbstick_Down, -1);
+			UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Left_Thumbstick_X, 1);
+			//UpdateAxisMapping(InputSettings, TEXT("Right"), EKeys::OculusTouch_Left_Thumbstick_Left, -1);
 			UpdateAxisMapping(InputSettings, TEXT("TurnRight"), EKeys::OculusTouch_Right_Thumbstick_X, 1);
 		}
 		UpdateAxisMapping(InputSettings, TEXT("GrabLeft"), EKeys::OculusTouch_Left_Grip_Axis, 1);
