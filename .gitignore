@@ -76,3 +76,5 @@ DerivedDataCache/*
 # My own ignores
 Content/ArchVizAssets/*
 Content/BeautyTesting/
+Content/Assets/HLA/
+Content/MSPresets/

@@ -284,7 +284,7 @@ void AVRController::FlickHighlight()
 {
 	if (bGoodFlickRotation() && !bHoldingFlick && !ComponentCurrentlyFlicking && !bIsGrabbing)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Trying to find object to flick"))
+		//UE_LOG(LogTemp, Warning, TEXT("Trying to find object to flick"))
 		/// Ray-cast out to reach distance
 		FVector StartLocation = GetActorLocation();
 		FVector HandDirection = GetActorUpVector().RotateAngleAxis(100, GetActorRightVector()).RotateAngleAxis(0, GetActorUpVector()).RotateAngleAxis(0, GetActorForwardVector());
@@ -340,13 +340,13 @@ void AVRController::FlickHighlight()
 		}
 		if (bHit && Component != ControllerMesh && Component->IsSimulatingPhysics() && !ComponentCurrentlyFlicking )
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Found object to flick %s"), *Component->GetName())
+			//UE_LOG(LogTemp, Warning, TEXT("Found object to flick %s"), *Component->GetName())
 			RegisteredFlickComponent = Component;
 			RegisteredFlickComponent->SetRenderCustomDepth(true);
 			RegisteredControllerLocation = GetActorLocation();
 
 			UpdateFlickSpline();
-			UE_LOG(LogTemp, Warning, TEXT("2"))
+			//UE_LOG(LogTemp, Warning, TEXT("2"))
 		}
 		else 
 		{ 
@@ -361,11 +361,11 @@ void AVRController::UpdateFlickSpline()
 	FVector Vec2 = RegisteredFlickComponent->GetComponentLocation();
 	FVector Direction = GetActorUpVector().RotateAngleAxis(100, GetActorRightVector()).RotateAngleAxis(0, GetActorUpVector()).RotateAngleAxis(0, GetActorForwardVector());
 	float DirectionAngle = acos(FVector::DotProduct(Direction, Vec2 - Vec1) / (Direction.Size() * (Vec2 - Vec1).Size()));
-	UE_LOG(LogTemp, Warning, TEXT("Angle %f"), DirectionAngle)
+	//UE_LOG(LogTemp, Warning, TEXT("Angle %f"), DirectionAngle)
 	float CurveFloat = 0;
 	if (ensure(FlickAngleCurve)) { CurveFloat = FlickAngleCurve->GetFloatValue(DirectionAngle); }
 	float CpMultiplier = 250 * CurveFloat; // Remove magic number and deal with angle going down
-	UE_LOG(LogTemp, Warning, TEXT("3"))
+	//UE_LOG(LogTemp, Warning, TEXT("3"))
 	FVector CpDirection = (FVector(0, 0, -1) + GetActorRightVector()).GetSafeNormal();
 	FVector Cp1 = Vec1 - CpDirection * CpMultiplier;
 	FVector Cp2 = Vec2 - CpDirection * CpMultiplier;
@@ -376,7 +376,7 @@ void AVRController::UpdateFlickSpline()
 	Vec2 };
 	int32 NumPoints = 100;
 	TArray<FVector> OutPoints;
-	UE_LOG(LogTemp, Warning, TEXT("5"))
+	//UE_LOG(LogTemp, Warning, TEXT("5"))
 	FVector::EvaluateBezier(ControlPoints, NumPoints, OutPoints);
 	UpdateSpline(OutPoints, FlickPath);
 	ModifySplinePoints(FlickPath, true, false); // DO hide points, DO NOT remove them
@@ -393,13 +393,13 @@ void AVRController::TryFlick()
 	bHoldingFlick = true;
 	UpdateFlickSpline();
 	ModifySplinePoints(FlickPath, false, false);
-	UE_LOG(LogTemp, Warning, TEXT("Hodl"))
+	//UE_LOG(LogTemp, Warning, TEXT("Hodl"))
 	if (RegisteredFlickComponent && !bIsGrabbing)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("s"))
+		//UE_LOG(LogTemp, Warning, TEXT("s"))
 		if (bUpVelocityForFlick() && !bOnOldComponent)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("WOOOOOOOOOOOOOOOOOOOOO"))
+			//UE_LOG(LogTemp, Warning, TEXT("WOOOOOOOOOOOOOOOOOOOOO"))
 			ComponentCurrentlyFlicking = RegisteredFlickComponent; // TODO figure this stuff out, need to smoothly move from 0 to 1
 			RegisteredFlickComponent = nullptr;
 			ModifySplinePoints(FlickPath, true, false); // we only want to hide the spline points
@@ -460,7 +460,7 @@ void AVRController::TryGrab()
 	If any objects, get closest to controller
 	Use PhysicsHandle or socket
 	*/
-	UE_LOG(LogTemp, Warning, TEXT("Trying to grab"))
+	//UE_LOG(LogTemp, Warning, TEXT("Trying to grab"))
 	if (bIsGrabbing) { return; }
 
 	TArray<UPrimitiveComponent*> OverlappingComponents;
@@ -468,7 +468,7 @@ void AVRController::TryGrab()
 	if (OverlappingComponents.Num() == 0) { return; }
 	bIsGrabbing = true;
 	GrabbedComponent = OverlappingComponents[0];
-	UE_LOG(LogTemp, Warning, TEXT("grab"))
+	//UE_LOG(LogTemp, Warning, TEXT("grab"))
 	PhysicsHandle->GrabComponentAtLocationWithRotation(GrabbedComponent, NAME_None, GrabbedComponent->GetComponentLocation(), GetOwner()->GetActorRotation());
 	GrabbedComponentInitDistance = FVector::Distance(GetActorLocation(), GrabbedComponent->GetComponentLocation());
 	ControllerRotationOnGrab = GetActorRotation();

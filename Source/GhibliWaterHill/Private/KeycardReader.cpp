@@ -17,12 +17,14 @@ AKeycardReader::AKeycardReader()
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Scene"));
 
-	KeycardDetectRegion = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("KeycardDetectRegion"));
-	KeycardDetectRegion->SetupAttachment(GetRootComponent());
-	KeycardDetectRegion->RegisterComponent();
+	if (GetWorld())
+	{
+		KeycardDetectRegion = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("KeycardDetectRegion"));
+		KeycardDetectRegion->SetupAttachment(GetRootComponent());
+		KeycardDetectRegion->RegisterComponent();
 
-	KeycardDetectRegion->OnComponentBeginOverlap.AddDynamic(this, &AKeycardReader::OnOverlapBegin);
-
+		KeycardDetectRegion->OnComponentBeginOverlap.AddDynamic(this, &AKeycardReader::OnOverlapBegin);
+	}
 
 }
 
