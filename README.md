@@ -1,5 +1,5 @@
 # UEAlyx
-A small VR project to focus on tuning player movement and VR visual design.
+A small VR project to focus on tuning player movement and VR visual design built in Unreal Engine 4.24.
 
 From commit on 27th April the mechanic work is mostly completed.
 
