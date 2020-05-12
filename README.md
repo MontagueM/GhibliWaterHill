@@ -20,5 +20,5 @@ Comparison:
 ![hlaflick](https://i.imgur.com/ilmiidx.jpg)
 ![myflick](https://i.imgur.com/DqYt6PH.png)
 
-It is clear to see that my "flick" needs work, especially with materials. However, after some small tuning with how the Bezier spline curve is calculated the grab line looks much closer to HL:A.
+It is clear to see that my "flick" needs work, especially with materials. However, after some small tuning with how the Bezier spline curve is calculated the grab line looks much closer to HL:A. One idea I want to test in the future is replacing the spline-travel with a simple impulse on the object, making the system much more robust and simple with a possibly even better result.
 The actual movement and flying can sometimes lag around, but when it works it seems to be very similar in style to the game.
